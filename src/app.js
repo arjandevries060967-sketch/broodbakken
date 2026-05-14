@@ -1,7 +1,7 @@
 // ─── Supabase configuratie ───────────────────────────────────────────────────
 const SUPABASE_URL = "https://hyoicgalewuficlmancd.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5b2ljZ2FsZXd1ZmljbG1hbmNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NjgwNzIsImV4cCI6MjA5NDM0NDA3Mn0.8O7X9SObL2um55BiAuwQwQadQ8v4WmHkdqnQwEttLp4";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── Seed recepten ────────────────────────────────────────────────────────────
 const seedRecipes = [
@@ -89,7 +89,7 @@ let activeDictation = null;
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 async function initAuth() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await db.auth.getSession();
   if (session?.user) {
     state.user = session.user;
     await loadRecipesFromDB();
@@ -97,7 +97,7 @@ async function initAuth() {
   state.loading = false;
   render();
 
-  supabase.auth.onAuthStateChange(async (event, session) => {
+  db.auth.onAuthStateChange(async (event, session) => {
     if (event === "SIGNED_IN" && session?.user) {
       state.user = session.user;
       await loadRecipesFromDB();
@@ -112,24 +112,24 @@ async function initAuth() {
 }
 
 async function signIn(email, password) {
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { error } = await db.auth.signInWithPassword({ email, password });
   if (error) return error.message;
   return null;
 }
 
 async function signUp(email, password) {
-  const { error } = await supabase.auth.signUp({ email, password });
+  const { error } = await db.auth.signUp({ email, password });
   if (error) return error.message;
   return null;
 }
 
 async function signOut() {
-  await supabase.auth.signOut();
+  await db.auth.signOut();
 }
 
 // ─── Database ─────────────────────────────────────────────────────────────────
 async function loadRecipesFromDB() {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("recipes")
     .select("*")
     .order("created_at", { ascending: true });
@@ -152,7 +152,7 @@ async function loadRecipesFromDB() {
 async function seedInitialRecipes() {
   const userId = state.user.id;
   const toInsert = seedRecipes.map((r) => ({ ...r, user_id: userId }));
-  const { data, error } = await supabase.from("recipes").insert(toInsert).select();
+  const { data, error } = await db.from("recipes").insert(toInsert).select();
   if (!error && data) {
     state.recipes = data.map(dbToLocal);
     state.selectedRecipeId = state.recipes[0]?.id || "";
@@ -162,7 +162,7 @@ async function seedInitialRecipes() {
 
 async function saveRecipeToDB(recipe) {
   const dbRecipe = localToDB(recipe);
-  const { error } = await supabase
+  const { error } = await db
     .from("recipes")
     .upsert({ ...dbRecipe, user_id: state.user.id });
 
@@ -174,12 +174,12 @@ async function saveRecipeToDB(recipe) {
 }
 
 async function deleteRecipeFromDB(recipeId) {
-  await supabase.from("recipes").delete().eq("id", recipeId);
+  await db.from("recipes").delete().eq("id", recipeId);
 }
 
 async function insertRecipeToDB(recipe) {
   const dbRecipe = localToDB(recipe);
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("recipes")
     .insert({ ...dbRecipe, user_id: state.user.id })
     .select()
