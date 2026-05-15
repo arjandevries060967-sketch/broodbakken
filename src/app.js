@@ -51,7 +51,7 @@ const state = {
   user: null,
   loading: true,
   authView: "login",
-  screen: "myrecipes",      // "myrecipes" | "workbench" | "library"
+  screen: "myrecipes",      // "myrecipes" | "workbench" | "library" | "profile"
   recipes: [],
   selectedRecipeId: "",
   activeTab: "ingredients",
@@ -59,6 +59,10 @@ const state = {
   saveMessage: "",
   library: [],
   libraryLoading: false,
+  profile: { display_name: "", avatar_url: "" },
+  profileSaving: false,
+  hiddenRecipes: new Set(), // verborgen bibliotheekitems (lokaal)
+  libraryProfiles: {},     // profiel per userId
 };
 
 const root = document.querySelector("#root");
@@ -70,7 +74,7 @@ async function initAuth() {
   const { data: { session } } = await db.auth.getSession();
   if (session?.user) {
     state.user = session.user;
-    await loadRecipesFromDB();
+    await Promise.all([loadRecipesFromDB(), loadProfile()]);
   }
   state.loading = false;
   render();
@@ -78,7 +82,7 @@ async function initAuth() {
   db.auth.onAuthStateChange(async (event, session) => {
     if (event === "SIGNED_IN" && session?.user) {
       state.user = session.user;
-      await loadRecipesFromDB();
+      await Promise.all([loadRecipesFromDB(), loadProfile()]);
       render();
     } else if (event === "SIGNED_OUT") {
       state.user = null;
@@ -86,6 +90,7 @@ async function initAuth() {
       state.selectedRecipeId = "";
       state.library = [];
       state.screen = "myrecipes";
+      state.profile = { display_name: "", avatar_url: "" };
       render();
     }
   });
@@ -127,6 +132,7 @@ async function loadLibrary() {
   const { data, error } = await db.from("recipes").select("*").eq("shared", true).order("updated_at", { ascending: false });
   state.libraryLoading = false;
   if (!error && data) state.library = data.map(dbToLocal);
+  await loadLibraryProfiles();
   render();
 }
 
@@ -150,7 +156,41 @@ async function insertRecipeToDB(recipe) {
   return dbToLocal(data);
 }
 
-// ─── Conversie ────────────────────────────────────────────────────────────────
+// ─── Profiel ──────────────────────────────────────────────────────────────────
+async function loadProfile() {
+  const { data } = await db.from("profiles").select("*").eq("id", state.user.id).single();
+  if (data) state.profile = { display_name: data.display_name || "", avatar_url: data.avatar_url || "" };
+}
+
+async function saveProfile(displayName, avatarUrl) {
+  const { error } = await db.from("profiles").upsert({
+    id: state.user.id,
+    display_name: displayName,
+    avatar_url: avatarUrl,
+    updated_at: new Date().toISOString(),
+  });
+  return !error;
+}
+
+async function uploadAvatar(file) {
+  const ext = file.name.split(".").pop();
+  const path = `${state.user.id}/avatar.${ext}`;
+  const { error } = await db.storage.from("avatars").upload(path, file, { upsert: true });
+  if (error) return null;
+  const { data } = db.storage.from("avatars").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+async function loadLibraryProfiles() {
+  if (state.library.length === 0) return;
+  const userIds = [...new Set(state.library.map((r) => r.userId))];
+  const { data } = await db.from("profiles").select("id, display_name, avatar_url").in("id", userIds);
+  if (data) {
+    state.libraryProfiles = Object.fromEntries(data.map((p) => [p.id, p]));
+  }
+}
+
+
 function dbToLocal(row) {
   const r = {
     id: row.id, userId: row.user_id, name: row.name,
@@ -299,11 +339,15 @@ function renderSnapshot(snap) {
 
 // ─── Topbar ───────────────────────────────────────────────────────────────────
 function renderTopbar(showBack = false, backLabel = "") {
+  const avatarHtml = state.profile.avatar_url
+    ? `<img src="${esc(state.profile.avatar_url)}" class="avatar-small" alt="profiel" />`
+    : `<div class="avatar-small avatar-placeholder">${esc((state.profile.display_name || state.user.email).charAt(0).toUpperCase())}</div>`;
+
   return `
     <header class="topbar">
       <div class="brand-lockup">
         <div class="brand-mark">${icon("chef")}</div>
-        <h1>Broodboek</h1>
+        <h1>Mijn Broodboek</h1>
       </div>
       ${showBack ? `
         <nav class="main-nav">
@@ -314,7 +358,7 @@ function renderTopbar(showBack = false, backLabel = "") {
           <button class="nav-btn ${state.screen === "library" ? "active" : ""}" data-screen="library">${icon("book")}Bibliotheek</button>
         </nav>`}
       <div class="topbar-user">
-        <span class="user-email">${esc(state.user.email)}</span>
+        <button class="avatar-btn" data-screen="profile" title="Profiel">${avatarHtml}</button>
         <button class="tool-button" id="btn-logout">${icon("logout")}Uitloggen</button>
       </div>
     </header>`;
@@ -374,6 +418,44 @@ function bindAuthEvents() {
   document.getElementById("auth-password").addEventListener("keydown", (e) => { if (e.key === "Enter") document.getElementById("auth-submit").click(); });
 }
 
+// ─── Profielpagina ────────────────────────────────────────────────────────────
+function renderProfile() {
+  const avatarHtml = state.profile.avatar_url
+    ? `<img src="${esc(state.profile.avatar_url)}" class="avatar-large" alt="profiel" />`
+    : `<div class="avatar-large avatar-placeholder">${esc((state.profile.display_name || state.user.email).charAt(0).toUpperCase())}</div>`;
+
+  return `
+    <main class="app-shell">
+      ${renderTopbar(true, "Terug")}
+      <div class="tile-screen">
+        <div class="tile-screen-header">
+          <h2>Mijn profiel</h2>
+        </div>
+        <div class="profile-form">
+          <div class="avatar-section">
+            ${avatarHtml}
+            <label class="tool-button file-tool">
+              ${icon("plus")}Foto uploaden
+              <input type="file" id="avatar-upload" accept="image/jpeg,image/png,image/webp" />
+            </label>
+          </div>
+          <label class="profile-field">
+            <span>Weergavenaam</span>
+            <input id="profile-name" type="text" value="${esc(state.profile.display_name)}" placeholder="Jouw naam" maxlength="60" />
+          </label>
+          <label class="profile-field">
+            <span>E-mailadres</span>
+            <input type="email" value="${esc(state.user.email)}" disabled />
+          </label>
+          <button class="tool-button primary" id="profile-save" ${state.profileSaving ? "disabled" : ""}>
+            ${state.profileSaving ? "Opslaan..." : `${icon("save")}Opslaan`}
+          </button>
+          ${state.saveMessage ? `<p class="save-message">${esc(state.saveMessage)}</p>` : ""}
+        </div>
+      </div>
+    </main>`;
+}
+
 // ─── Mijn recepten scherm ─────────────────────────────────────────────────────
 function renderMyRecipes() {
   const sorted = getSortedRecipes();
@@ -420,9 +502,17 @@ function renderLibrary() {
     if (state.library.length === 0) return `<p class="empty-state">Nog geen gedeelde recepten. Zodra iemand een recept deelt verschijnt het hier.</p>`;
 
     const own = state.library.filter((r) => r.userId === state.user.id);
-    const others = state.library.filter((r) => r.userId !== state.user.id);
+    const others = state.library.filter((r) => r.userId !== state.user.id && !state.hiddenRecipes.has(r.id));
 
-    const renderCard = (item, isOwn) => `
+    const renderCard = (item, isOwn) => {
+      const profile = state.libraryProfiles[item.userId];
+      const naam = profile?.display_name || item.userId?.slice(0, 8) || "Onbekend";
+      const avatarUrl = profile?.avatar_url;
+      const avatarHtml = avatarUrl
+        ? `<img src="${esc(avatarUrl)}" class="avatar-tiny" alt="${esc(naam)}" />`
+        : `<div class="avatar-tiny avatar-placeholder">${esc(naam.charAt(0).toUpperCase())}</div>`;
+
+      return `
       <article class="recipe-tile">
         <div class="recipe-tile-body">
           <div class="recipe-tile-top">
@@ -432,14 +522,16 @@ function renderLibrary() {
           <span class="recipe-tile-cat">${esc(item.category || "Overig")}</span>
           <span class="recipe-tile-meta">${fmtW(item.flourTotal || 0)} bloem · ${fmtPct(item.ingredients.find((i) => i.name === "Water")?.percentage || 0)} hydratatie</span>
           ${item.description ? `<p class="recipe-tile-desc">${esc(preview(item.description))}</p>` : ""}
+          <div class="library-author">${avatarHtml}<span>${esc(naam)}</span></div>
         </div>
         <div class="recipe-tile-actions">
           ${isOwn
             ? `<button class="tool-button" data-goto-recipe="${item.id}" type="button">${icon("edit")}Openen</button>
                <button class="icon-action danger" data-unpublish="${item.id}" type="button" title="Privé maken">${icon("share")}</button>`
-            : `<button class="tool-button" data-copy-library="${item.id}" type="button">${icon("copy")}Kopiëren</button>`}
+            : `<button class="tool-button" data-copy-library="${item.id}" type="button">${icon("copy")}Kopiëren</button>
+               <button class="icon-action danger" data-hide-recipe="${item.id}" type="button" title="Verbergen">${icon("trash")}</button>`}
         </div>
-      </article>`;
+      </article>`;};
 
     return `
       ${own.length > 0 ? `
@@ -537,21 +629,6 @@ function renderWorkbench() {
             <div>${icon("note")}<span>Per brood</span><strong data-loaf-weight>${fmtW(loafWeight)}</strong></div>
           </div>
 
-          <details class="scale-panel-wrap">
-            <summary>Schalen</summary>
-            <section class="scale-panel">
-              <label>
-                <span>Gewenst totaal deeg</span>
-                <div><input data-target-dough inputmode="decimal" min="1" type="number" value="${Math.round(recipe.targetDoughWeight || totalDoughWeight)}" /><span>g</span></div>
-              </label>
-              <label>
-                <span>Aantal broden</span>
-                <input data-loaf-count inputmode="numeric" min="1" type="number" value="${recipe.loafCount || 1}" />
-              </label>
-              <p>Past bloem totaal aan op basis van het gewenste deeggewicht.</p>
-            </section>
-          </details>
-
           <div class="tabbar" role="tablist">
             <button class="${state.activeTab === "ingredients" ? "active" : ""}" data-tab="ingredients" type="button">Ingrediënten</button>
             <button class="${state.activeTab === "method" ? "active" : ""}" data-tab="method" type="button">Werkwijze</button>
@@ -637,6 +714,7 @@ function render() {
   if (state.screen === "myrecipes") root.innerHTML = renderMyRecipes();
   else if (state.screen === "library") root.innerHTML = renderLibrary();
   else if (state.screen === "workbench") root.innerHTML = renderWorkbench();
+  else if (state.screen === "profile") root.innerHTML = renderProfile();
 
   bindEvents();
 }
@@ -660,6 +738,51 @@ function markUnsaved() {
 // ─── Events ───────────────────────────────────────────────────────────────────
 function bindEvents() {
   document.getElementById("btn-logout")?.addEventListener("click", signOut);
+
+  // Profiel events
+  document.querySelector("[data-screen='profile']")?.addEventListener("click", () => {
+    state.screen = "profile";
+    state.saveMessage = "";
+    render();
+  });
+
+  document.getElementById("profile-save")?.addEventListener("click", async () => {
+    const name = document.getElementById("profile-name")?.value.trim() || "";
+    state.profileSaving = true;
+    render();
+    const ok = await saveProfile(name, state.profile.avatar_url);
+    state.profileSaving = false;
+    if (ok) {
+      state.profile.display_name = name;
+      state.saveMessage = "Profiel opgeslagen";
+    } else {
+      state.saveMessage = "Fout bij opslaan";
+    }
+    render();
+  });
+
+  document.getElementById("avatar-upload")?.addEventListener("change", async (e) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    state.profileSaving = true; render();
+    const url = await uploadAvatar(file);
+    state.profileSaving = false;
+    if (url) {
+      state.profile.avatar_url = url;
+      await saveProfile(state.profile.display_name, url);
+      state.saveMessage = "Foto opgeslagen";
+    } else {
+      state.saveMessage = "Foto uploaden mislukt — controleer of de avatars storage bucket bestaat in Supabase";
+    }
+    render();
+  });
+
+  // Verberg recept uit bibliotheek
+  document.querySelectorAll("[data-hide-recipe]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.hiddenRecipes.add(btn.dataset.hideRecipe);
+      render();
+    });
+  });
 
   // Scherm navigatie
   document.querySelectorAll("[data-screen]").forEach((btn) => {
