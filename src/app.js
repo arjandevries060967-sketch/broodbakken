@@ -691,12 +691,12 @@ function renderWorkbench() {
                   </h3>`;
                 })()}
                 <div class="table-wrap">
-                  <table>
+                  ${flours.length === 0 ? `
+                    <p class="empty-state" style="padding:10px 0">Nog geen meelsoort toegevoegd — klik op de knop hieronder.</p>
+                  ` : `<table>
                     <thead><tr><th>Meelsoort</th><th>Percentage</th><th>Hoeveelheid</th><th></th></tr></thead>
                     <tbody>
-                      ${flours.length === 0 ? `
-                        <tr><td colspan="4"><em class="empty-state" style="font-size:0.85rem">Nog geen meelsoort toegevoegd</em></td></tr>` :
-                        flours.map((ing) => `
+                      ${flours.map((ing) => `
                         <tr>
                           <td><input class="material-input" data-flour-index="${ing.index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. T65 label rouge" /></td>
                           <td><label class="number-cell"><input data-flour-index="${ing.index}" data-kind="percentage" inputmode="decimal" min="0" max="100" step="0.1" type="number" value="${ing.percentage > 0 ? fmt(ing.percentage, 1) : ""}" placeholder="%" /><span>%</span></label></td>
@@ -704,7 +704,7 @@ function renderWorkbench() {
                           <td><button class="icon-action danger" data-delete-flour="${ing.index}" type="button">${icon("trash")}</button></td>
                         </tr>`).join("")}
                     </tbody>
-                  </table>
+                  </table>`}
                 </div>
                 <button class="tool-button" data-add-flour type="button" style="margin-top:8px">${icon("plus")}Meelsoort toevoegen</button>
               </div>
@@ -712,12 +712,12 @@ function renderWorkbench() {
               <div class="ingredients-group">
                 <h3 class="ingredients-group-title">Toevoegingen <span class="pct-hint">% van totaal meel</span></h3>
                 <div class="table-wrap">
-                  <table>
+                  ${additions.length === 0 ? `
+                    <p class="empty-state" style="padding:10px 0">Nog geen toevoeging toegevoegd — klik op de knop hieronder.</p>
+                  ` : `<table>
                     <thead><tr><th>Ingrediënt</th><th>Percentage</th><th>Hoeveelheid</th><th></th></tr></thead>
                     <tbody>
-                      ${additions.length === 0 ? `
-                        <tr><td colspan="4"><em class="empty-state" style="font-size:0.85rem">Nog geen toevoeging toegevoegd</em></td></tr>` :
-                        additions.map((ing) => `
+                      ${additions.map((ing) => `
                         <tr>
                           <td><input class="material-input" data-addition-index="${ing.index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. water" /></td>
                           <td><label class="number-cell"><input data-addition-index="${ing.index}" data-kind="percentage" inputmode="decimal" min="0" step="0.1" type="number" value="${ing.percentage > 0 ? fmt(ing.percentage, 1) : ""}" placeholder="%" /><span>%</span></label></td>
@@ -725,7 +725,7 @@ function renderWorkbench() {
                           <td><button class="icon-action danger" data-delete-addition="${ing.index}" type="button">${icon("trash")}</button></td>
                         </tr>`).join("")}
                     </tbody>
-                  </table>
+                  </table>`}
                 </div>
                 <button class="tool-button" data-add-addition type="button" style="margin-top:8px">${icon("plus")}Toevoeging toevoegen</button>
               </div>
