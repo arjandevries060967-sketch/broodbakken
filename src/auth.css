@@ -239,9 +239,21 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
   .app-shell { width: 100% !important; padding: 0 !important; }
 }
 
-/* ════════════════════════════════════════════════════════════════════════════
-   RESPONSIVE
-   ════════════════════════════════════════════════════════════════════════════ */
+/* ── Mobiel tegel en header fixes ────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .tile-screen-header { flex-wrap: nowrap; }
+  .tile-screen-header h2 { flex-shrink: 1; min-width: 0; }
+  .tile-screen-header .tool-button { flex-shrink: 0; }
+
+  .recipe-tile { overflow: hidden; width: 100%; }
+  .recipe-tile-actions {
+    display: grid !important;
+    grid-template-columns: 1fr auto auto auto !important;
+    gap: 6px !important;
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+  }
+}
 
 /* Tablet: 2 kolommen tegels */
 @media (max-width: 900px) {
