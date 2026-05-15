@@ -243,13 +243,8 @@ function ensureEditableRows(recipe) {
   recipe.notes = Array.isArray(recipe.notes) ? recipe.notes : [];
   recipe.notes.forEach((note) => { note.rating = note.rating || "ok"; });
 
-  const blankRows = recipe.ingredients.filter(
-    (i) => !i.name && i.percentage === 0 && i.unit === "g"
-  ).length;
-  const missingRows = Math.max(0, EMPTY_ROWS - blankRows);
-  if (missingRows > 0) {
-    recipe.ingredients.push(...Array.from({ length: missingRows }, createBlankIngredient));
-  }
+  // Verwijder lege rijen — worden dynamisch toegevoegd via de knop
+  recipe.ingredients = recipe.ingredients.filter((i) => i.name || i.percentage > 0);
 }
 
 function createBlankIngredient() {
@@ -270,7 +265,6 @@ function createBlankRecipe() {
     lastUsedAt: Date.now(),
     ingredients: [
       { name: "Bloem", percentage: 1, unit: "g" },
-      ...Array.from({ length: EMPTY_ROWS }, createBlankIngredient),
     ],
     notes: [],
   };
@@ -635,7 +629,7 @@ function render() {
                 <span>Korte omschrijving</span>
                 <textarea data-recipe-description rows="2" placeholder="Korte omschrijving van dit recept">${escapeHtml(recipe.description || "")}</textarea>
               </label>
-              
+              <p class="formula-hint">Alle getallen zijn gekoppeld: pas bloem, procent of gram aan en de rest rekent direct mee.</p>
             </div>
             <label class="flour-input">
               <span>Bloem totaal</span>
@@ -706,6 +700,7 @@ function render() {
                   `).join("")}
                 </tbody>
               </table>
+              <button class="tool-button" data-add-ingredient type="button" style="margin-top:10px">${icon("plus")}Ingrediënt toevoegen</button>
             </div>
           ` : state.activeTab === "method" ? `
             <section class="method-panel" aria-label="Werkwijze">
@@ -759,22 +754,6 @@ function render() {
         </section>
       </section>
 
-      <details class="style-board" aria-label="Stijlblad">
-        <summary>Stijlblad bekijken</summary>
-        <div class="style-intro">
-          <p class="eyebrow">Stijlblad</p>
-          <h2>Ambachtelijk warm, rustig en bruikbaar</h2>
-        </div>
-        <div class="swatches">
-          ${colorTokens.map((token) => `
-            <div class="swatch">
-              <span style="background-color:${token.value}"></span>
-              <strong>${token.name}</strong>
-              <small>${token.value} · ${token.usage}</small>
-            </div>
-          `).join("")}
-        </div>
-      </details>
     </main>
   `;
 
@@ -869,6 +848,14 @@ function bindEvents() {
 
   document.querySelectorAll("[data-dictate-target]").forEach((button) => {
     button.addEventListener("click", () => startDictation(button));
+  });
+
+  document.querySelector("[data-add-ingredient]")?.addEventListener("click", () => {
+    const recipe = getSelectedRecipe();
+    recipe.ingredients.push(createBlankIngredient());
+    render();
+    const inputs = document.querySelectorAll("[data-kind='name']");
+    inputs[inputs.length - 1]?.focus();
   });
 
   document.querySelector("[data-delete-recipe]").addEventListener("click", async () => {
