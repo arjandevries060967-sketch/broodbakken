@@ -263,6 +263,7 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
   .topbar h1 { font-size: 1.18rem !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .main-nav {
     grid-column: 1 / -1;
+    grid-row: 2;
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
@@ -278,7 +279,7 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
     background: rgba(255,250,241,0.72);
     border-color: var(--lijn);
   }
-  .topbar-user { gap: 6px; }
+  .topbar-user { grid-column: 2; grid-row: 1; gap: 6px; }
   .user-email { display: none; }
   #btn-logout { width: 38px; padding: 0 !important; font-size: 0; }
   #btn-logout svg { margin: 0; }
@@ -294,13 +295,13 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
   .tile-screen { padding: 12px !important; }
   .tile-screen-header {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) minmax(96px, auto);
     align-items: center;
     gap: 10px;
     margin-bottom: 12px;
   }
   .tile-screen-header h2 { font-size: 1.18rem !important; }
-  .tile-screen-header .tool-button { min-height: 38px; padding-inline: 10px; }
+  .tile-screen-header .tool-button { min-height: 38px; padding-inline: 10px; justify-self: end; }
 
   .recipe-filters {
     flex-wrap: nowrap;
@@ -320,7 +321,8 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
     padding: 12px;
     overflow: hidden;
   }
-  .recipe-tile-top { gap: 6px; }
+  .recipe-tile-top { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .recipe-tile-badges { min-width: 0; flex-shrink: 1; justify-content: flex-start; }
   .recipe-tile-name { font-size: 1.05rem; }
   .recipe-tile-cat { font-size: 0.68rem; }
   .recipe-tile-meta, .recipe-tile-desc { font-size: 0.78rem; }

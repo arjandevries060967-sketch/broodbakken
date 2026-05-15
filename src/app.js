@@ -511,7 +511,7 @@ function renderMyRecipes() {
       <div class="tile-screen">
         <div class="tile-screen-header">
           <h2>Mijn recepten</h2>
-          <button class="tool-button primary" data-new-recipe type="button">${icon("plus")}Nieuw recept</button>
+          <button class="tool-button primary" data-new-recipe type="button">${icon("plus")}Nieuw</button>
         </div>
         <div class="recipe-filters">
           ${["alle", "favoriet", "gist", "zuurdesem", "gedeeld"].map((f) => `
