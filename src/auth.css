@@ -1,93 +1,90 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   Broodboek — auth.css
+   Aanvulling op styles.css: navigatie, schermen, componenten, responsive
+   ════════════════════════════════════════════════════════════════════════════ */
+
 /* ── Navigatie ───────────────────────────────────────────────────────────── */
 .main-nav { display: flex; gap: 4px; }
 
 .nav-btn {
-  display: inline-flex; align-items: center; gap: 7px;
-  min-height: 38px; padding: 8px 14px;
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 36px; padding: 7px 12px;
   border: 1px solid transparent; border-radius: 6px;
   background: transparent; color: var(--steen-grijs);
-  font: inherit; font-size: 0.88rem; font-weight: 700; cursor: pointer;
+  font: inherit; font-size: 0.85rem; font-weight: 700; cursor: pointer;
 }
-.nav-btn svg { width: 18px; height: 18px; }
-.nav-btn.active { border-color: rgba(122,63,36,0.3); background: var(--oven-bruin); color: var(--zout-wit); }
+.nav-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.nav-btn.active { background: var(--oven-bruin); color: var(--zout-wit); border-color: rgba(122,63,36,0.3); }
 .nav-btn:not(.active):hover { background: var(--rogge); }
 
-/* ── Topbar ──────────────────────────────────────────────────────────────── */
-.topbar { justify-content: space-between; flex-wrap: wrap; gap: 10px; }
-.topbar-user { display: flex; align-items: center; gap: 12px; }
-.user-email { color: var(--steen-grijs); font-size: 0.82rem; font-weight: 600; }
-.topbar h1 { font-size: clamp(1.6rem, 5vw, 3rem); }
+/* ── Topbar uitbreidingen ────────────────────────────────────────────────── */
+.topbar { justify-content: space-between; }
+.topbar-user { display: flex; align-items: center; gap: 10px; }
+.user-email { font-size: 0.82rem; font-weight: 600; color: var(--steen-grijs); }
 
 /* ── Tegel scherm ────────────────────────────────────────────────────────── */
 .tile-screen {
   border: 1px solid var(--lijn); border-radius: var(--radius);
-  background: var(--zout-wit); box-shadow: var(--schaduw); padding: 22px;
+  background: var(--zout-wit); box-shadow: var(--schaduw); padding: 20px;
 }
 
 .tile-screen-header {
   display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
 }
+.tile-screen-header h2 { font-size: clamp(1.1rem, 3vw, 1.6rem); }
 
-.tile-screen-header h2 { margin: 0; font-size: clamp(1.2rem, 3vw, 1.8rem); }
+/* ── Filter knoppen ──────────────────────────────────────────────────────── */
+.recipe-filters {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.filter-btn {
+  padding: 5px 12px; border: 1px solid var(--lijn); border-radius: 999px;
+  background: var(--meel); color: var(--steen-grijs);
+  font: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer;
+  white-space: nowrap;
+}
+.filter-btn.active { background: var(--oven-bruin); color: var(--zout-wit); border-color: var(--oven-bruin); }
+.filter-btn:not(.active):hover { background: var(--rogge); }
 
-.tile-section { margin-bottom: 28px; }
-.tile-section-title { margin: 0 0 12px; font-size: 1rem; color: var(--gist-groen); font-weight: 900; text-transform: uppercase; letter-spacing: 0.02em; }
-
-/* Tegels: 3 kolommen op breed, 2 op medium, 1 op mobiel */
+/* ── Tegels ──────────────────────────────────────────────────────────────── */
 .tile-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
-@media (max-width: 900px) {
-  .tile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-@media (max-width: 560px) {
-  .tile-grid { grid-template-columns: 1fr; }
-}
-
-/* ── Recepttegel ─────────────────────────────────────────────────────────── */
 .recipe-tile {
-  display: flex; flex-direction: column; justify-content: space-between;
-  padding: 14px; border: 1px solid var(--lijn); border-radius: var(--radius);
-  background: #fbf4e8; gap: 12px;
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 14px; border: 1px solid var(--lijn);
+  border-radius: var(--radius); background: #fbf4e8;
+  min-width: 0;
 }
 
-.recipe-tile-body { display: grid; gap: 5px; }
+.recipe-tile-body { display: grid; gap: 5px; min-width: 0; }
+.recipe-tile-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.recipe-tile-name { color: var(--oven-donker); font-size: 1rem; font-weight: 800; font-family: Fraunces, Georgia, serif; line-height: 1.2; }
+.recipe-tile-badges { display: flex; gap: 5px; flex-wrap: wrap; flex-shrink: 0; }
+.recipe-tile-cat { color: var(--gist-groen); font-size: 0.72rem; font-weight: 800; text-transform: uppercase; }
+.recipe-tile-meta { color: var(--steen-grijs); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.recipe-tile-desc { margin: 2px 0 0; color: var(--steen-grijs); font-size: 0.82rem; line-height: 1.4; }
 
-.recipe-tile-top {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
-}
+.recipe-tile-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.recipe-tile-actions .tool-button { flex: 1; min-width: 0; justify-content: center; }
 
-.recipe-tile-name {
-  color: var(--oven-donker); font-size: 1rem; font-weight: 800;
-  font-family: Fraunces, Georgia, serif; line-height: 1.2;
-}
-
-.recipe-tile-badges { display: flex; gap: 5px; flex-shrink: 0; flex-wrap: wrap; }
-
+/* ── Badges ──────────────────────────────────────────────────────────────── */
 .badge {
   display: inline-flex; align-items: center; gap: 3px;
-  padding: 2px 7px; border-radius: 999px; font-size: 0.7rem; font-weight: 800;
+  padding: 2px 7px; border-radius: 999px;
+  font-size: 0.68rem; font-weight: 800;
 }
-.badge svg { width: 11px; height: 11px; }
+.badge svg { width: 10px; height: 10px; }
 .badge-star { background: #fff0b8; color: #8a5d12; }
 .badge-shared { background: rgba(122,63,36,0.1); color: var(--oven-bruin); }
-.badge-own { background: rgba(111,127,77,0.12); color: var(--gist-groen); text-transform: uppercase; letter-spacing: 0.02em; }
+.badge-own { background: rgba(111,127,77,0.12); color: var(--gist-groen); text-transform: uppercase; }
+.badge-leavening { background: rgba(111,127,77,0.1); color: var(--gist-groen); font-size: 0.68rem; padding: 2px 6px; border-radius: 999px; font-weight: 800; }
 
-.recipe-tile-cat { color: var(--gist-groen); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
-.recipe-tile-meta { color: var(--steen-grijs); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
-.recipe-tile-desc { margin: 4px 0 0; color: var(--steen-grijs); font-size: 0.82rem; line-height: 1.4; }
-
-.recipe-tile-actions {
-  display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
-}
-
-.recipe-tile-actions .tool-button { flex: 1; justify-content: center; }
-
+.active-star { border-color: rgba(180,130,20,0.4); background: rgba(255,220,50,0.15); color: #8a6a10; }
 .active-share { border-color: rgba(122,63,36,0.36); background: rgba(122,63,36,0.1); color: var(--oven-bruin); }
 
 /* ── Werkbench scherm ────────────────────────────────────────────────────── */
@@ -98,553 +95,234 @@
 
 .workbench-topbar {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; flex-wrap: wrap;
-  padding: 14px 18px; border-bottom: 1px solid var(--lijn); background: var(--meel);
+  gap: 10px; flex-wrap: wrap; padding: 14px 18px;
+  border-bottom: 1px solid var(--lijn); background: var(--meel);
 }
-
-.workbench-title { margin: 0; font-size: clamp(1.1rem, 3vw, 1.6rem); color: var(--oven-donker); font-family: Fraunces, Georgia, serif; }
-
+.workbench-title { margin: 0; font-size: clamp(1rem, 3vw, 1.5rem); color: var(--oven-donker); font-family: Fraunces, Georgia, serif; }
 .workbench-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-
-.workbench-body { padding: 18px; }
+.workbench-body { padding: 16px; }
 
 /* ── Meer opties dropdown ────────────────────────────────────────────────── */
 .more-options { position: relative; }
-
 .more-options summary {
   display: inline-flex; align-items: center; gap: 6px;
   min-height: 36px; padding: 7px 12px;
   border: 1px solid var(--lijn); border-radius: 6px;
   background: #fbf4e8; color: var(--oven-donker);
-  font: inherit; font-size: 0.8rem; font-weight: 900;
-  cursor: pointer; white-space: nowrap; list-style: none;
+  font: inherit; font-size: 0.82rem; font-weight: 800;
+  cursor: pointer; list-style: none; white-space: nowrap;
 }
 .more-options summary::-webkit-details-marker { display: none; }
-
 .more-options-list {
-  position: absolute; top: calc(100% + 6px); right: 0;
-  z-index: 200; display: grid; gap: 4px; min-width: 220px; padding: 10px;
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 200;
+  display: grid; gap: 4px; min-width: 210px; padding: 10px;
   border: 1px solid var(--lijn); border-radius: var(--radius);
   background: var(--zout-wit); box-shadow: var(--schaduw);
 }
 
-/* ── Scale panel wrap ────────────────────────────────────────────────────── */
-.scale-panel-wrap {
-  margin-bottom: 12px; padding: 10px 14px;
-  border: 1px solid var(--lijn); border-radius: var(--radius); background: var(--meel);
+/* ── Ingrediënten secties ────────────────────────────────────────────────── */
+.ingredients-section { display: grid; gap: 20px; }
+.ingredients-group {
+  border: 1px solid var(--lijn); border-radius: var(--radius);
+  padding: 14px; background: var(--meel);
 }
-.scale-panel-wrap summary {
-  color: var(--gist-groen); font-size: 0.82rem; font-weight: 900;
-  text-transform: uppercase; cursor: pointer;
+.ingredients-group-title {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  margin: 0 0 12px; font-size: 0.95rem; color: var(--oven-donker);
+  font-family: Fraunces, Georgia, serif;
 }
-.scale-panel-wrap[open] summary { margin-bottom: 10px; }
+.pct-total {
+  font-family: Inter, sans-serif; font-size: 0.78rem; font-weight: 900;
+  padding: 2px 8px; border-radius: 999px;
+}
+.pct-ok { background: rgba(111,127,77,0.15); color: var(--gist-groen); }
+.pct-under { background: rgba(200,160,40,0.15); color: #8a6a10; }
+.pct-over { background: rgba(180,40,40,0.15); color: #8a1010; }
+.pct-hint { font-family: Inter, sans-serif; font-size: 0.72rem; font-weight: 700; color: var(--gist-groen); text-transform: uppercase; }
+
+/* ── Bloem indicator ─────────────────────────────────────────────────────── */
+.flour-total-indicator {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-left: 8px; font-family: Inter, sans-serif;
+}
+.flour-total-input {
+  width: 80px; min-height: 28px; padding: 3px 8px;
+  border: 1px solid rgba(122,63,36,0.22); border-radius: 6px;
+  background: var(--zout-wit); color: var(--oven-donker);
+  font: inherit; font-size: 0.88rem; font-weight: 700;
+}
+.flour-total-input:focus { outline: 0; border-color: rgba(122,63,36,0.68); box-shadow: 0 0 0 3px rgba(122,63,36,0.12); }
+.flour-total-indicator > span:not(.pct-total) { font-size: 0.8rem; color: var(--steen-grijs); font-weight: 600; }
+
+/* ── readonly velden ─────────────────────────────────────────────────────── */
+input[readonly] { background: var(--meel) !important; color: var(--steen-grijs); cursor: default; }
 
 /* ── Save message ────────────────────────────────────────────────────────── */
 .save-message { min-height: 1.15em; margin: 0; color: var(--gist-groen); font-size: 0.84rem; font-weight: 900; }
-
-/* ── Auth scherm ─────────────────────────────────────────────────────────── */
-.auth-shell { display: grid; place-items: center; min-height: 100vh; padding: 20px; }
-.auth-card {
-  width: min(480px, 100%); border: 1px solid var(--lijn); border-radius: var(--radius);
-  background: var(--zout-wit); box-shadow: var(--schaduw); overflow: hidden;
-}
-.auth-brand { display: flex; align-items: center; gap: 18px; padding: 22px; background: var(--meel); border-bottom: 1px solid var(--lijn); }
-.auth-form-wrap { padding: 28px; }
-.auth-form-wrap h2 { margin-bottom: 20px; font-size: 1.5rem; }
-.auth-form { display: grid; gap: 14px; }
-.auth-form label { display: grid; gap: 6px; }
-.auth-form label span { color: var(--gist-groen); font-size: 0.78rem; font-weight: 900; text-transform: uppercase; }
-.auth-form input {
-  width: 100%; min-height: 42px; padding: 10px 12px;
-  border: 1px solid rgba(122,63,36,0.22); border-radius: 6px;
-  background: var(--meel); color: var(--oven-donker); font: inherit; font-size: 0.95rem;
-}
-.auth-form input:focus { outline: 0; border-color: rgba(122,63,36,0.68); box-shadow: 0 0 0 3px rgba(122,63,36,0.12); }
-.auth-submit { margin-top: 6px; min-height: 44px; font-size: 0.95rem; }
-.auth-error { margin: 0 0 16px; padding: 10px 12px; border-radius: 6px; background: #f4e1d6; color: var(--oven-bruin); font-size: 0.88rem; font-weight: 700; }
-.auth-switch { margin: 18px 0 0; color: var(--steen-grijs); font-size: 0.88rem; }
-.auth-link { padding: 0; border: 0; background: transparent; color: var(--oven-bruin); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
-
-/* ── Responsive werkbench ────────────────────────────────────────────────── */
-@media (max-width: 720px) {
-  /* Topbar compact */
-  .topbar {
-    flex-wrap: wrap; gap: 8px; padding: 14px 16px;
-  }
-  .topbar h1 { font-size: 1.6rem; }
-  .brand-mark { width: 48px !important; }
-  .topbar-user { gap: 8px; }
-  .user-email { display: none; }
-  .main-nav { gap: 4px; }
-  .nav-btn { padding: 6px 10px; font-size: 0.8rem; gap: 5px; }
-  .nav-btn svg { width: 15px; height: 15px; }
-
-  /* Werkbench */
-  .workbench-screen { border-radius: 0; border-left: none; border-right: none; }
-  .workbench-topbar { flex-direction: column; align-items: flex-start; padding: 12px 14px; gap: 8px; }
-  .workbench-title { font-size: 1.2rem; }
-  .workbench-actions { width: 100%; flex-wrap: wrap; gap: 6px; }
-  .workbench-body { padding: 14px; }
-
-  /* Recipe header */
-  .recipe-header { grid-template-columns: 1fr !important; }
-  .category-field > div { grid-template-columns: 1fr !important; }
-  .flour-input { margin-top: 0; }
-
-  /* Metrics */
-  .metric-row { grid-template-columns: 1fr 1fr !important; gap: 8px; }
-
-  /* Tabbar */
-  .tabbar button { padding: 8px 10px; font-size: 0.82rem; }
-
-  /* Tabel → kaartjes op mobiel */
-  .table-wrap { overflow: visible; }
-
-  table thead { display: none; }
-
-  table, tbody, tr { display: block; width: 100%; }
-
-  tr {
-    display: grid;
-    grid-template-columns: 1fr auto auto auto;
-    gap: 6px;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--lijn);
-  }
-
-  tr:last-child { border-bottom: none; }
-
-  td { padding: 0; border: none; display: block; }
-
-  td:first-child { grid-column: 1 / -2; }
-  td:nth-child(2) { grid-column: 1 / 2; }
-  td:nth-child(3) { grid-column: 2 / 3; }
-  td:last-child { grid-column: 3 / 4; grid-row: 1; align-self: start; }
-
-  .material-input { font-size: 0.9rem; }
-  .number-cell { min-width: 80px; }
-  .number-cell input { font-size: 0.85rem; }
-
-  /* Bloem indicator */
-  .flour-total-indicator { flex-wrap: wrap; gap: 4px; }
-  .flour-total-input { width: 70px; }
-
-  /* Ingrediënten groepen */
-  .ingredients-group { padding: 10px; }
-  .ingredients-group-title { font-size: 0.9rem; flex-wrap: wrap; gap: 6px; }
-
-  /* Logboek */
-  .note-form-wide { grid-template-columns: 1fr !important; }
-  .note summary { grid-template-columns: auto auto 1fr !important; }
-
-  /* Tile scherm */
-  .tile-screen { padding: 14px; border-radius: 0; border-left: none; border-right: none; }
-  .tile-screen-header { margin-bottom: 12px; }
-
-  /* Meer opties */
-  .more-options-list { right: 0; left: auto; min-width: 180px; }
-
-  /* Leavening */
-  .leavening-options { gap: 12px; }
-}
-
-/* ── Print stylesheet ────────────────────────────────────────────────────── */
-@media print {
-  .topbar, .workbench-topbar, .tabbar, .scale-panel-wrap,
-  .more-options, #btn-logout, .topbar-user,
-  [data-add-ingredient], [data-delete-ingredient],
-  [data-dictate-target], .dictate-button { display: none !important; }
-  .workbench-body { padding: 0 !important; }
-  .recipe-header { display: block !important; }
-  .metric-row { display: flex !important; gap: 24px; margin: 12px 0; }
-  table { min-width: 0 !important; width: 100% !important; }
-  input, textarea, select { border: none !important; background: transparent !important; padding: 0 !important; }
-  .number-cell { border: none !important; background: transparent !important; padding: 0 !important; }
-  .app-shell { width: 100% !important; padding: 0 !important; }
-}
 
 /* ── Avatar ──────────────────────────────────────────────────────────────── */
 .avatar-btn {
   padding: 0; border: 2px solid var(--lijn); border-radius: 999px;
   background: transparent; cursor: pointer; display: flex; align-items: center;
+  flex-shrink: 0;
 }
 .avatar-btn:hover { border-color: var(--oven-bruin); }
-
-.avatar-small, .avatar-tiny {
-  border-radius: 999px; object-fit: cover; display: block;
-}
-.avatar-small { width: 36px; height: 36px; font-size: 0.9rem; }
-.avatar-tiny { width: 24px; height: 24px; font-size: 0.7rem; }
-.avatar-large { width: 80px; height: 80px; border-radius: 999px; object-fit: cover; display: block; font-size: 2rem; }
-
+.avatar-small, .avatar-tiny { border-radius: 999px; object-fit: cover; display: block; }
+.avatar-small { width: 36px; height: 36px; font-size: 0.88rem; }
+.avatar-tiny { width: 22px; height: 22px; font-size: 0.7rem; }
+.avatar-large { width: 80px; height: 80px; border-radius: 999px; object-fit: cover; display: block; font-size: 1.8rem; }
 .avatar-placeholder {
   display: flex; align-items: center; justify-content: center;
   background: var(--oven-bruin); color: var(--zout-wit); font-weight: 800;
 }
 
 /* ── Profielpagina ───────────────────────────────────────────────────────── */
-.profile-form {
-  display: grid; gap: 16px; max-width: 480px;
-}
-
-.avatar-section {
-  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-}
-
+.profile-form { display: grid; gap: 16px; max-width: 480px; }
+.avatar-section { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .profile-field { display: grid; gap: 6px; }
-.profile-field span { color: var(--gist-groen); font-size: 0.78rem; font-weight: 900; text-transform: uppercase; }
+.profile-field span { color: var(--gist-groen); font-size: 0.76rem; font-weight: 900; text-transform: uppercase; }
 .profile-field input {
   min-height: 42px; padding: 10px 12px;
   border: 1px solid rgba(122,63,36,0.22); border-radius: 6px;
-  background: var(--meel); color: var(--oven-donker);
-  font: inherit; font-size: 0.95rem;
+  background: var(--meel); color: var(--oven-donker); font: inherit; font-size: 0.95rem;
 }
 .profile-field input:disabled { opacity: 0.6; cursor: not-allowed; }
 .profile-field input:focus { outline: 0; border-color: rgba(122,63,36,0.68); box-shadow: 0 0 0 3px rgba(122,63,36,0.12); }
 
-/* ── Bibliotheek auteur ──────────────────────────────────────────────────── */
-.library-author {
-  display: flex; align-items: center; gap: 6px;
-  margin-top: 6px; color: var(--steen-grijs); font-size: 0.78rem; font-weight: 600;
+/* ── Bibliotheek ─────────────────────────────────────────────────────────── */
+.tile-section { margin-bottom: 24px; }
+.tile-section-title { margin: 0 0 10px; font-size: 0.85rem; color: var(--gist-groen); font-weight: 900; text-transform: uppercase; letter-spacing: 0.02em; }
+.library-author { display: flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--steen-grijs); font-size: 0.78rem; font-weight: 600; }
+
+/* ── Auth scherm ─────────────────────────────────────────────────────────── */
+.auth-shell { display: grid; place-items: center; min-height: 100vh; padding: 20px; }
+.auth-card {
+  width: min(480px, 100%); border: 1px solid var(--lijn);
+  border-radius: var(--radius); background: var(--zout-wit);
+  box-shadow: var(--schaduw); overflow: hidden;
 }
-
-/* ── Ingrediënten secties ────────────────────────────────────────────────── */
-.ingredients-section { display: grid; gap: 24px; }
-
-.ingredients-group {
-  border: 1px solid var(--lijn); border-radius: var(--radius);
-  padding: 14px; background: var(--meel);
-}
-
-.ingredients-group-title {
-  margin: 0 0 12px; font-size: 0.95rem; color: var(--oven-donker);
-  font-family: Fraunces, Georgia, serif; display: flex; align-items: center; gap: 10px;
-}
-
-.pct-total {
-  font-family: Inter, sans-serif; font-size: 0.8rem; font-weight: 900;
-  padding: 2px 8px; border-radius: 999px;
-  background: rgba(122,63,36,0.1); color: var(--oven-bruin);
-}
-
-.pct-hint {
-  font-family: Inter, sans-serif; font-size: 0.75rem; font-weight: 600;
-  color: var(--gist-groen); text-transform: uppercase;
-}
-
-/* ── Rijsmiddel ──────────────────────────────────────────────────────────── */
-.leavening-field { display: grid; gap: 6px; margin-top: 10px; }
-.leavening-field > span { color: var(--gist-groen); font-size: 0.78rem; font-weight: 900; text-transform: uppercase; }
-
-.leavening-options { display: flex; gap: 16px; }
-
-.leavening-option {
-  display: flex; align-items: center; gap: 8px; cursor: pointer;
-  font-size: 0.9rem; font-weight: 700; color: var(--oven-donker);
-}
-
-.leavening-option input[type="radio"] { accent-color: var(--oven-bruin); width: 16px; height: 16px; cursor: pointer; }
-
-/* ── Percentage kleur indicators ─────────────────────────────────────────── */
-.pct-ok { background: rgba(111,127,77,0.15); color: var(--gist-groen); }
-.pct-under { background: rgba(200,160,40,0.15); color: #8a6a10; }
-.pct-over { background: rgba(180,40,40,0.15); color: #8a1010; }
-
-/* ── Readonly velden ─────────────────────────────────────────────────────── */
-input[readonly] {
-  background: var(--meel) !important;
-  color: var(--steen-grijs);
-  cursor: default;
-}
-
-/* ── Bloem totaal indicator ──────────────────────────────────────────────── */
-.flour-total-indicator {
-  display: inline-flex; align-items: center; gap: 6px;
-  margin-left: 10px; font-family: Inter, sans-serif;
-}
-
-.flour-total-input {
-  width: 80px; min-height: 30px; padding: 4px 8px;
+.auth-brand { display: flex; align-items: center; gap: 16px; padding: 20px; background: var(--meel); border-bottom: 1px solid var(--lijn); }
+.auth-form-wrap { padding: 24px; }
+.auth-form-wrap h2 { margin-bottom: 18px; font-size: 1.4rem; }
+.auth-form { display: grid; gap: 14px; }
+.auth-form label { display: grid; gap: 5px; }
+.auth-form label span { color: var(--gist-groen); font-size: 0.76rem; font-weight: 900; text-transform: uppercase; }
+.auth-form input {
+  width: 100%; min-height: 42px; padding: 10px 12px;
   border: 1px solid rgba(122,63,36,0.22); border-radius: 6px;
-  background: var(--zout-wit); color: var(--oven-donker);
-  font: inherit; font-size: 0.88rem; font-weight: 700;
+  background: var(--meel); color: var(--oven-donker); font: inherit; font-size: 0.95rem;
 }
+.auth-form input:focus { outline: 0; border-color: rgba(122,63,36,0.68); box-shadow: 0 0 0 3px rgba(122,63,36,0.12); }
+.auth-submit { margin-top: 4px; min-height: 44px; font-size: 0.95rem; }
+.auth-error { margin: 0 0 14px; padding: 10px 12px; border-radius: 6px; background: #f4e1d6; color: var(--oven-bruin); font-size: 0.88rem; font-weight: 700; }
+.auth-switch { margin: 16px 0 0; color: var(--steen-grijs); font-size: 0.88rem; }
+.auth-link { padding: 0; border: 0; background: transparent; color: var(--oven-bruin); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 
-.flour-total-input:focus {
-  outline: 0; border-color: rgba(122,63,36,0.68);
-  box-shadow: 0 0 0 3px rgba(122,63,36,0.12);
-}
-
-.flour-total-indicator > span:not(.pct-total) {
-  font-size: 0.82rem; color: var(--steen-grijs); font-weight: 600;
-}
-
-/* ── Filter knoppen ──────────────────────────────────────────────────────── */
-.recipe-filters {
-  display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px;
-}
-
-.filter-btn {
-  padding: 6px 14px; border: 1px solid var(--lijn); border-radius: 999px;
-  background: var(--meel); color: var(--steen-grijs);
-  font: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer;
-}
-
-.filter-btn.active {
-  border-color: var(--oven-bruin); background: var(--oven-bruin); color: var(--zout-wit);
-}
-
-.filter-btn:not(.active):hover { background: var(--rogge); }
-
-/* ── Rijsmiddel badge ────────────────────────────────────────────────────── */
-.badge-leavening {
-  background: rgba(111,127,77,0.1); color: var(--gist-groen);
-  font-size: 0.68rem; padding: 2px 6px; border-radius: 999px; font-weight: 800;
-}
-
-/* ── Ster actief ─────────────────────────────────────────────────────────── */
-.active-star {
-  border-color: rgba(180,130,20,0.4);
-  background: rgba(255,220,50,0.15);
-  color: #8a6a10;
-}
-
-/* ── Extra mobiel fixes ──────────────────────────────────────────────────── */
-@media (max-width: 480px) {
-  .app-shell {
-    width: 100% !important;
-    padding: 10px 0 20px !important;
-  }
-
-  .tile-screen {
-    border-radius: 0 !important;
-    border-left: none !important;
-    border-right: none !important;
-    padding: 12px !important;
-  }
-
-  .workbench-screen {
-    border-radius: 0 !important;
-    border-left: none !important;
-    border-right: none !important;
-  }
-
-  .recipe-tile {
-    padding: 12px;
-  }
-
-  .tile-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .recipe-filters {
-    gap: 6px;
-  }
-
-  .filter-btn {
-    font-size: 0.78rem;
-    padding: 5px 10px;
-  }
-
-  .tile-screen-header h2 {
-    font-size: 1.2rem;
-  }
-
-  .workbench-topbar {
-    padding: 10px 12px;
-  }
-
-  .workbench-body {
-    padding: 12px;
-  }
-
+/* ── Print ───────────────────────────────────────────────────────────────── */
+@media print {
+  .topbar, .workbench-topbar, .tabbar,
+  .more-options, #btn-logout, .topbar-user,
+  [data-add-ingredient], [data-delete-ingredient],
+  [data-dictate-target], .dictate-button { display: none !important; }
+  .workbench-body { padding: 0 !important; }
+  .metric-row { display: flex !important; gap: 20px; margin: 12px 0; }
   table { min-width: 0 !important; width: 100% !important; }
+  input, textarea, select { border: none !important; background: transparent !important; padding: 0 !important; }
+  .app-shell { width: 100% !important; padding: 0 !important; }
 }
 
-/* ── iPhone fixes (393px breed) ─────────────────────────────────────────── */
-@media (max-width: 430px) {
-  /* Voorkom overflow */
-  html, body { overflow-x: hidden; max-width: 100vw; }
+/* ════════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ════════════════════════════════════════════════════════════════════════════ */
 
-  * { box-sizing: border-box; }
+/* Tablet: 2 kolommen tegels */
+@media (max-width: 900px) {
+  .tile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
-  .app-shell {
-    width: 100% !important;
-    padding: 8px 0 20px !important;
-    overflow-x: hidden;
-  }
+/* Mobiel: alles op 1 kolom, compacte layout */
+@media (max-width: 600px) {
+  /* Prevent horizontal scroll */
+  html, body, #root { overflow-x: hidden; max-width: 100vw; }
+
+  .app-shell { width: 100% !important; padding: 0 0 20px !important; }
 
   /* Topbar */
   .topbar {
-    padding: 10px 12px !important;
-    gap: 6px !important;
-    align-items: flex-start !important;
+    border-radius: 0 !important; border-left: none !important; border-right: none !important;
+    padding: 10px 12px !important; flex-wrap: wrap; gap: 8px;
   }
-
-  .brand-lockup { gap: 10px; }
-  .brand-mark { width: 44px !important; aspect-ratio: 1; }
   .topbar h1 { font-size: 1.4rem !important; }
-  .main-nav { width: 100%; }
-  .nav-btn { flex: 1; justify-content: center; padding: 6px 8px; font-size: 0.78rem; }
-  .topbar-user { width: 100%; justify-content: flex-end; }
+  .brand-mark { width: 42px !important; }
+  .user-email { display: none; }
+  .nav-btn { padding: 6px 10px; font-size: 0.78rem; }
+
+  /* Tegels */
+  .tile-grid { grid-template-columns: 1fr !important; }
+  .tile-screen {
+    border-radius: 0 !important; border-left: none !important;
+    border-right: none !important; padding: 12px !important;
+  }
+  .tile-screen-header .tool-button { flex: 1; }
+  .recipe-filters { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  .filter-btn { flex-shrink: 0; }
 
   /* Werkbench */
-  .workbench-screen, .tile-screen {
-    border-left: none !important; border-right: none !important;
-    border-radius: 0 !important; width: 100% !important;
+  .workbench-screen {
+    border-radius: 0 !important; border-left: none !important; border-right: none !important;
   }
+  .workbench-topbar { padding: 10px 12px !important; flex-wrap: wrap; gap: 8px; }
+  .workbench-title { font-size: 1.1rem !important; }
+  .workbench-actions { width: 100%; flex-wrap: wrap; }
+  .workbench-body { padding: 12px !important; }
 
-  .workbench-body, .tile-screen { padding: 12px !important; }
-  .workbench-topbar { padding: 10px 12px !important; }
+  /* Recipe header */
+  .recipe-header { grid-template-columns: 1fr !important; gap: 12px !important; }
+  .recipe-name-field input { font-size: 1.4rem !important; }
+  .category-field > div { grid-template-columns: 1fr !important; gap: 8px; }
+  .leavening-options { gap: 12px; }
 
-  /* Recipe header inputs */
-  .recipe-name-field input { font-size: 1.6rem !important; }
-  .category-field > div { display: grid; grid-template-columns: 1fr !important; gap: 8px; }
-  .category-field select,
-  .category-field input { width: 100% !important; }
-
-  /* Metriek */
-  .metric-row {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 8px !important;
-  }
+  /* Metrics */
+  .metric-row { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
 
   /* Bloem indicator */
-  .ingredients-group-title { flex-direction: column; align-items: flex-start; gap: 6px; }
-  .flour-total-indicator { margin-left: 0 !important; }
-  .flour-total-input { width: 90px; }
-
-  /* Tabel volledig gestapeld */
-  .table-wrap { overflow-x: hidden !important; }
-  table, thead, tbody, tr, td, th { display: block !important; width: 100% !important; min-width: 0 !important; }
-  thead { display: none !important; }
-
-  tr {
-    display: grid !important;
-    grid-template-columns: 1fr auto auto !important;
-    gap: 6px !important;
-    padding: 10px 0 !important;
-    border-bottom: 1px solid var(--lijn) !important;
-    align-items: center !important;
-  }
-
-  tr td:first-child { grid-column: 1 / -1; }
-  tr td:nth-child(2) { grid-column: 1 / 2; }
-  tr td:nth-child(3) { grid-column: 2 / 3; }
-  tr td:last-child { grid-column: 3 / 4; }
-
-  .material-input { width: 100% !important; }
-  .number-cell { min-width: 0 !important; width: 100% !important; }
-  .number-cell input { min-width: 0 !important; }
-
-  /* Filters */
-  .recipe-filters { gap: 5px; }
-  .filter-btn { font-size: 0.75rem; padding: 4px 8px; }
-
-  /* Tegel */
-  .tile-grid { grid-template-columns: 1fr !important; }
-  .recipe-tile { padding: 12px; }
-  .recipe-tile-actions { flex-wrap: wrap; }
-  .recipe-tile-actions .tool-button { flex: 1; min-width: 80px; }
-
-  /* Logboek form */
-  .note-form-wide { grid-template-columns: 1fr !important; }
-
-  /* Meer opties dropdown */
-  .more-options-list { right: 0; left: auto; width: 200px; }
-
-  /* Werkwijze textarea */
-  textarea { width: 100% !important; }
-
-  /* Inspreken knop */
-  .field-header { flex-wrap: wrap; gap: 6px; }
-  .dictate-button { font-size: 0.78rem; }
-}
-
-/* ── Mobiel: ingrediënten breedte fix ────────────────────────────────────── */
-@media (max-width: 480px) {
-  .ingredients-section { gap: 16px; }
-  .ingredients-group { padding: 10px; overflow: hidden; }
-  .ingredients-group-title { font-size: 0.88rem; }
-
-  .flour-total-indicator {
-    display: flex; flex-wrap: wrap; align-items: center;
-    gap: 4px; margin-left: 0 !important; width: 100%;
-  }
+  .ingredients-group { padding: 10px !important; overflow: hidden; }
+  .ingredients-group-title { flex-wrap: wrap; gap: 6px; font-size: 0.88rem !important; }
+  .flour-total-indicator { margin-left: 0 !important; flex-wrap: wrap; gap: 4px; }
   .flour-total-input { width: 80px !important; }
 
-  .table-wrap { overflow: hidden; width: 100%; }
-  table, tbody, tr, td { max-width: 100%; }
-
+  /* Tabel → gestapeld */
+  .table-wrap { overflow-x: hidden !important; }
+  table, tbody { display: block !important; width: 100% !important; min-width: 0 !important; }
+  thead { display: none !important; }
   tr {
     display: grid !important;
     grid-template-columns: 1fr auto auto !important;
-    gap: 6px !important; width: 100% !important;
+    gap: 6px !important; align-items: center !important;
+    padding: 10px 0 !important; border-bottom: 1px solid var(--lijn) !important;
+    width: 100% !important;
   }
+  tr:last-child { border-bottom: none !important; }
+  td { display: block !important; padding: 0 !important; border: none !important; min-width: 0 !important; }
   tr td:first-child { grid-column: 1 / -1 !important; }
   tr td:nth-child(2) { grid-column: 1 / 2 !important; }
   tr td:nth-child(3) { grid-column: 2 / 3 !important; }
   tr td:last-child { grid-column: 3 / 4 !important; }
-
   .material-input { width: 100% !important; min-width: 0 !important; }
-  .number-cell { min-width: 0 !important; width: 100% !important; max-width: none !important; }
+  .number-cell { min-width: 0 !important; width: auto !important; }
 
-  .metric-row { grid-template-columns: 1fr 1fr !important; }
-  .metric-row > div:last-child { grid-column: 1 / -1; }
-}
+  /* Logboek */
+  .note-form-wide { grid-template-columns: 1fr !important; }
+  .note summary { grid-template-columns: auto auto minmax(0,1fr) !important; }
 
-/* ── Tegel acties mobiel fix ─────────────────────────────────────────────── */
-@media (max-width: 480px) {
-  .recipe-tile { overflow: hidden; width: 100%; }
-  .recipe-tile-top { flex-wrap: wrap; }
-  .recipe-tile-badges { flex-wrap: wrap; }
+  /* Meer opties */
+  .more-options-list { right: 0; left: auto; min-width: 180px; }
+
+  /* Tegel acties */
   .recipe-tile-actions {
     display: grid !important;
     grid-template-columns: 1fr auto auto auto !important;
     gap: 6px !important;
-    width: 100% !important;
   }
-  .recipe-tile-actions .tool-button { width: 100% !important; }
-
-  .tile-screen-header { flex-wrap: wrap; }
-  .tile-screen-header .tool-button { width: 100% !important; }
-
-  .recipe-filters { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
-  .filter-btn { flex-shrink: 0; }
-}
-
-/* ── Fundamentele overflow fix ───────────────────────────────────────────── */
-@media (max-width: 480px) {
-  #root, .app-shell, main {
-    max-width: 100vw;
-    overflow-x: hidden;
-  }
-
-  .workbench-screen, .workbench-body,
-  .tile-screen, .ingredients-section,
-  .ingredients-group {
-    max-width: 100%;
-    overflow-x: hidden;
-    box-sizing: border-box;
-  }
-
-  .workbench-body { padding: 10px !important; }
-
-  .recipe-header { gap: 12px !important; }
-
-  .recipe-name-field, .category-field,
-  .description-field, .leavening-field {
-    max-width: 100%;
-  }
-
-  .recipe-name-field input { font-size: 1.3rem !important; }
-
-  .flour-total-indicator {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 6px !important;
-    margin-left: 0 !important;
-    max-width: 100% !important;
-  }
+  .recipe-tile-actions .tool-button { justify-content: center !important; }
 }
