@@ -63,6 +63,7 @@ const state = {
   profileSaving: false,
   hiddenRecipes: new Set(), // verborgen bibliotheekitems (lokaal)
   libraryProfiles: {},     // profiel per userId
+  recipeFilter: "alle",    // "alle" | "gist" | "zuurdesem" | "favoriet"
 };
 
 const root = document.querySelector("#root");
@@ -490,7 +491,14 @@ function renderProfile() {
 
 // ─── Mijn recepten scherm ─────────────────────────────────────────────────────
 function renderMyRecipes() {
-  const sorted = getSortedRecipes();
+  const all = getSortedRecipes();
+  const filtered = all.filter((r) => {
+    if (state.recipeFilter === "gist") return r.leavening !== "zuurdesem";
+    if (state.recipeFilter === "zuurdesem") return r.leavening === "zuurdesem";
+    if (state.recipeFilter === "favoriet") return r.favorite;
+    return true;
+  });
+
   return `
     <main class="app-shell">
       ${renderTopbar()}
@@ -499,24 +507,32 @@ function renderMyRecipes() {
           <h2>Mijn recepten</h2>
           <button class="tool-button primary" data-new-recipe type="button">${icon("plus")}Nieuw recept</button>
         </div>
-        ${sorted.length === 0
-          ? `<p class="empty-state">Nog geen recepten. Maak je eerste recept aan.</p>`
+        <div class="recipe-filters">
+          ${["alle", "favoriet", "gist", "zuurdesem"].map((f) => `
+            <button class="filter-btn ${state.recipeFilter === f ? "active" : ""}" data-filter="${f}">
+              ${f === "favoriet" ? "★ " : ""}${f.charAt(0).toUpperCase() + f.slice(1)}
+            </button>`).join("")}
+        </div>
+        ${filtered.length === 0
+          ? `<p class="empty-state">Geen recepten gevonden.</p>`
           : `<div class="tile-grid">
-              ${sorted.map((r) => `
-                <article class="recipe-tile" data-open-recipe="${r.id}">
+              ${filtered.map((r) => `
+                <article class="recipe-tile">
                   <div class="recipe-tile-body">
                     <div class="recipe-tile-top">
                       <span class="recipe-tile-name">${esc(r.name)}</span>
                       <div class="recipe-tile-badges">
-                        ${r.favorite ? `<span class="badge badge-star">★</span>` : ""}
                         ${r.shared ? `<span class="badge badge-shared">${icon("share")}Gedeeld</span>` : ""}
-                      </div>                    </div>
+                        <span class="badge badge-leavening">${r.leavening === "zuurdesem" ? "Zuurdesem" : "Gist"}</span>
+                      </div>
+                    </div>
                     <span class="recipe-tile-cat">${esc(r.category || "Overig")}</span>
                     <span class="recipe-tile-meta">${fmtW(r.flourTotal || 0)} bloem · ${fmtPct(getHydration(r))} hydratatie</span>
                     ${r.description ? `<p class="recipe-tile-desc">${esc(preview(r.description))}</p>` : ""}
                   </div>
                   <div class="recipe-tile-actions">
                     <button class="tool-button" data-open-recipe="${r.id}" type="button">${icon("edit")}Openen</button>
+                    <button class="icon-action ${r.favorite ? "active-star" : ""}" data-toggle-favorite="${r.id}" type="button" title="${r.favorite ? "Favoriet verwijderen" : "Favoriet"}">${icon("star")}</button>
                     <button class="icon-action ${r.shared ? "active-share" : ""}" data-toggle-shared-tile="${r.id}" type="button" title="${r.shared ? "Privé maken" : "Delen"}">${icon("share")}</button>
                     <button class="icon-action danger" data-delete-tile="${r.id}" type="button" title="Verwijderen">${icon("trash")}</button>
                   </div>
@@ -843,6 +859,26 @@ function bindEvents() {
     btn.addEventListener("click", () => {
       state.hiddenRecipes.add(btn.dataset.hideRecipe);
       render();
+    });
+  });
+
+  // Filter knoppen
+  document.querySelectorAll("[data-filter]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.recipeFilter = btn.dataset.filter;
+      render();
+    });
+  });
+
+  // Favoriet toggle op tegel
+  document.querySelectorAll("[data-toggle-favorite]").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const recipe = state.recipes.find((r) => r.id === btn.dataset.toggleFavorite);
+      if (!recipe) return;
+      recipe.favorite = !recipe.favorite;
+      render();
+      await saveRecipeToDB(recipe);
     });
   });
 

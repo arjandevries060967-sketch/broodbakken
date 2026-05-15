@@ -306,3 +306,33 @@ input[readonly] {
 .flour-total-indicator > span:not(.pct-total) {
   font-size: 0.82rem; color: var(--steen-grijs); font-weight: 600;
 }
+
+/* ── Filter knoppen ──────────────────────────────────────────────────────── */
+.recipe-filters {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px;
+}
+
+.filter-btn {
+  padding: 6px 14px; border: 1px solid var(--lijn); border-radius: 999px;
+  background: var(--meel); color: var(--steen-grijs);
+  font: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer;
+}
+
+.filter-btn.active {
+  border-color: var(--oven-bruin); background: var(--oven-bruin); color: var(--zout-wit);
+}
+
+.filter-btn:not(.active):hover { background: var(--rogge); }
+
+/* ── Rijsmiddel badge ────────────────────────────────────────────────────── */
+.badge-leavening {
+  background: rgba(111,127,77,0.1); color: var(--gist-groen);
+  font-size: 0.68rem; padding: 2px 6px; border-radius: 999px; font-weight: 800;
+}
+
+/* ── Ster actief ─────────────────────────────────────────────────────────── */
+.active-star {
+  border-color: rgba(180,130,20,0.4);
+  background: rgba(255,220,50,0.15);
+  color: #8a6a10;
+}
