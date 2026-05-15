@@ -384,7 +384,7 @@ function renderTopbar(showBack = false, backLabel = "") {
   return `
     <header class="topbar">
       <div class="brand-lockup">
-        <div class="brand-mark">${icon("chef")}</div>
+        <div class="brand-mark"><img src="./assets/logo.png" alt="Broodboek logo" /></div>
         <h1>Mijn Broodboek</h1>
       </div>
       ${showBack ? `
@@ -409,7 +409,7 @@ function renderAuthScreen() {
     <div class="auth-shell">
       <div class="auth-card">
         <div class="auth-brand">
-          <div class="brand-mark">${icon("chef")}</div>
+          <div class="brand-mark"><img src="./assets/logo.png" alt="Broodboek logo" /></div>
           <div><h1>Broodboek</h1></div>
         </div>
         <div class="auth-form-wrap">
