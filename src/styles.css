@@ -58,7 +58,7 @@ h2 { font-size: clamp(1.1rem, 3vw, 1.8rem); }
   background: #fbf4e8; color: var(--gist-groen); flex-shrink: 0;
 }
 .brand-mark svg { width: 60%; height: 60%; }
-.brand-mark img { width: 78%; height: 78%; object-fit: contain; display: block; }
+.brand-mark img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: calc(var(--radius) - 2px); }
 
 .tool-button {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
