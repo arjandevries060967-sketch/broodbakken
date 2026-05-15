@@ -635,7 +635,7 @@ function render() {
                 <span>Korte omschrijving</span>
                 <textarea data-recipe-description rows="2" placeholder="Korte omschrijving van dit recept">${escapeHtml(recipe.description || "")}</textarea>
               </label>
-              <p class="formula-hint">Alle getallen zijn gekoppeld: pas bloem, procent of gram aan en de rest rekent direct mee.</p>
+              
             </div>
             <label class="flour-input">
               <span>Bloem totaal</span>
