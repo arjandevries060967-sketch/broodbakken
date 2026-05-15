@@ -225,7 +225,7 @@ function localToDB(recipe) {
     shared: Boolean(recipe.shared),
     last_used_at: recipe.lastUsedAt || 0,
     loaf_count: recipe.loafCount || 1,
-    flours: recipe.flours.filter((i) => i.name || (i.amount > 0)).map(({ _new, percentage, ...i }) => i),
+    flours: recipe.flours.filter((i) => i.name || i.percentage > 0).map(({ _new, amount, ...i }) => i),
     additions: recipe.additions.filter((i) => i.name || i.percentage > 0).map(({ _new, ...i }) => i),
     notes: recipe.notes,
   };
@@ -260,17 +260,17 @@ function cloneRecipe(recipe) {
   return { ...structuredClone(recipe), name: `${recipe.name} kopie`, favorite: false, shared: false, lastUsedAt: Date.now() };
 }
 
-// Bloem: grammen leidend als _amountLast=true, anders percentage leidend
+// Bloem: gebruiker vult percentage in, grammen berekend t.o.v. flourTotal
 function getTotalFlourWeight(recipe) {
-  return (recipe.flours || []).reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  return recipe.flourTotal || 0;
 }
 
 function calculateFlours(recipe) {
-  const total = getTotalFlourWeight(recipe);
+  const f = recipe.flourTotal || 0;
   return (recipe.flours || []).map((i, index) => ({
     ...i, index,
-    amount: Number(i.amount) || 0,
-    percentage: total > 0 ? Math.round(((Number(i.amount) || 0) / total) * 1000) / 10 : (Number(i.percentage) || 0),
+    percentage: Number(i.percentage) || 0,
+    amount: f > 0 ? (Number(i.percentage) || 0) / 100 * f : 0,
   }));
 }
 
@@ -644,13 +644,6 @@ function renderWorkbench() {
                 <small class="dictation-status" data-dictation-status></small>
               </label>
             </div>
-            <label class="flour-input">
-              <span>Bloem totaal</span>
-              <div>
-                <input data-flour-display-total readonly tabindex="-1" type="number" value="${getTotalFlourWeight(recipe) || ""}" placeholder="0" />
-                <span>gram</span>
-              </div>
-            </label>
           </div>
 
           <div class="metric-row">
@@ -670,21 +663,27 @@ function renderWorkbench() {
 
               <div class="ingredients-group">
                 ${(() => {
-                  const flourPctTotal = flours.reduce((s, i) => s + i.percentage, 0);
+                  const flourPctTotal = flours.reduce((s, i) => s + (i.percentage || 0), 0);
                   const pctClass = Math.abs(flourPctTotal - 100) < 0.1 ? "pct-ok" : flourPctTotal > 100 ? "pct-over" : "pct-under";
-                  return `<h3 class="ingredients-group-title">Bloem / meel <span class="pct-total ${pctClass}" data-flour-pct-total>${fmt(flourPctTotal, 1)}%</span></h3>`;
+                  return `<h3 class="ingredients-group-title">Bloem / meel
+                    <span class="flour-total-indicator">
+                      <input class="flour-total-input" data-flour-input inputmode="decimal" min="1" type="number" value="${recipe.flourTotal || ""}" placeholder="gram" />
+                      <span>g</span>
+                      <span class="pct-total ${pctClass}" data-flour-pct-total>100% / ${fmt(flourPctTotal, 1)}%</span>
+                    </span>
+                  </h3>`;
                 })()}
                 <div class="table-wrap">
                   <table>
-                    <thead><tr><th>Meelsoort</th><th>Hoeveelheid</th><th>Percentage</th><th></th></tr></thead>
+                    <thead><tr><th>Meelsoort</th><th>Percentage</th><th>Hoeveelheid</th><th></th></tr></thead>
                     <tbody>
                       ${flours.length === 0 ? `
                         <tr><td colspan="4"><em class="empty-state" style="font-size:0.85rem">Nog geen meelsoort toegevoegd</em></td></tr>` :
                         flours.map((ing) => `
                         <tr>
                           <td><input class="material-input" data-flour-index="${ing.index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. T65 label rouge" /></td>
-                          <td><label class="number-cell amount-cell"><input data-flour-index="${ing.index}" data-kind="amount" inputmode="decimal" min="0" step="1" type="number" value="${ing.amount > 0 ? fmt(ing.amount, 0) : ""}" placeholder="gram" /><span>g</span></label></td>
                           <td><label class="number-cell"><input data-flour-index="${ing.index}" data-kind="percentage" inputmode="decimal" min="0" max="100" step="0.1" type="number" value="${ing.percentage > 0 ? fmt(ing.percentage, 1) : ""}" placeholder="%" /><span>%</span></label></td>
+                          <td><label class="number-cell amount-cell"><input data-flour-index="${ing.index}" data-kind="amount" readonly tabindex="-1" type="number" value="${ing.amount > 0 ? fmt(ing.amount, 1) : ""}" placeholder="–" /><span>g</span></label></td>
                           <td><button class="icon-action danger" data-delete-flour="${ing.index}" type="button">${icon("trash")}</button></td>
                         </tr>`).join("")}
                     </tbody>
@@ -704,8 +703,8 @@ function renderWorkbench() {
                         additions.map((ing) => `
                         <tr>
                           <td><input class="material-input" data-addition-index="${ing.index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. water" /></td>
-                          <td><label class="number-cell"><input data-addition-index="${ing.index}" data-kind="percentage" inputmode="decimal" min="0" step="0.1" type="number" value="${fmt(ing.percentage, 1)}" /><span>%</span></label></td>
-                          <td><label class="number-cell amount-cell"><input data-addition-index="${ing.index}" data-kind="amount" inputmode="decimal" min="0" step="1" type="number" value="${fmt(ing.amount, 1)}" /><span>g</span></label></td>
+                          <td><label class="number-cell"><input data-addition-index="${ing.index}" data-kind="percentage" inputmode="decimal" min="0" step="0.1" type="number" value="${ing.percentage > 0 ? fmt(ing.percentage, 1) : ""}" placeholder="%" /><span>%</span></label></td>
+                          <td><label class="number-cell amount-cell"><input data-addition-index="${ing.index}" data-kind="amount" readonly tabindex="-1" type="number" value="${ing.amount > 0 ? fmt(ing.amount, 1) : ""}" placeholder="–" /><span>g</span></label></td>
                           <td><button class="icon-action danger" data-delete-addition="${ing.index}" type="button">${icon("trash")}</button></td>
                         </tr>`).join("")}
                     </tbody>
@@ -1040,11 +1039,13 @@ function bindEvents() {
     recipe.category = cat; markUnsaved(); render();
   });
 
-  document.querySelector("[data-flour-input]")?.addEventListener("input", (e) => {
-    const recipe = getSelectedRecipe();
-    const v = Number(e.target.value);
-    recipe.flourTotal = Number.isFinite(v) && v > 0 ? v : 0;
-    updateComputedFields(); markUnsaved();
+  document.querySelectorAll("[data-flour-input]").forEach((input) => {
+    input.addEventListener("input", (e) => {
+      const recipe = getSelectedRecipe();
+      const v = Number(e.target.value);
+      recipe.flourTotal = Number.isFinite(v) && v > 0 ? v : 0;
+      updateComputedFields(); markUnsaved();
+    });
   });
 
   document.querySelectorAll("[data-leavening]").forEach((radio) => {
@@ -1053,31 +1054,15 @@ function bindEvents() {
     });
   });
 
-  // Bloem/meel events — grammen of percentage, laatste is leidend
+  // Bloem/meel: gebruiker vult percentage in, grammen automatisch berekend
   document.querySelectorAll("[data-flour-index]").forEach((input) => {
     input.addEventListener("input", (e) => {
       const recipe = getSelectedRecipe();
       const idx = Number(e.target.dataset.flourIndex);
       const v = Number(e.target.value);
       const ing = recipe.flours[idx]; if (!ing) return;
-
-      if (e.target.dataset.kind === "name") {
-        ing.name = e.target.value; delete ing._new;
-      } else if (e.target.dataset.kind === "amount") {
-        // Grammen ingevuld → sla op, percentage wordt berekend
-        ing.amount = Number.isFinite(v) && v >= 0 ? v : 0;
-        ing._amountLast = true;
-      } else if (e.target.dataset.kind === "percentage") {
-        // Percentage ingevuld → bereken grammen op basis van huidig totaal meel
-        ing.percentage = Number.isFinite(v) && v >= 0 ? v : 0;
-        ing._amountLast = false;
-        // Bereken grammen: percentage van totaal alle andere grammen + dit
-        const otherTotal = recipe.flours.reduce((s, i, j) => j !== idx && i._amountLast !== false ? s + (Number(i.amount) || 0) : s, 0);
-        // Als er al grammen zijn bij andere meelsoorten, bereken op basis van die totaal
-        if (otherTotal > 0) {
-          ing.amount = (ing.percentage / 100) * otherTotal / (1 - ing.percentage / 100);
-        }
-      }
+      if (e.target.dataset.kind === "name") { ing.name = e.target.value; delete ing._new; }
+      if (e.target.dataset.kind === "percentage") ing.percentage = Number.isFinite(v) && v >= 0 ? v : 0;
       updateComputedFields(); markUnsaved();
     });
   });
@@ -1173,35 +1158,29 @@ function bindEvents() {
 function updateComputedFields() {
   const recipe = getSelectedRecipe();
   const active = document.activeElement;
+  const flourTotal = recipe.flourTotal || 0;
 
-  // Bereken bloem totaal en percentages
+  // Bereken bloem rijen
   const flours = calculateFlours(recipe);
-  const flourTotal = getTotalFlourWeight(recipe);
-  const flourPctTotal = flours.reduce((s, i) => s + i.percentage, 0);
+  const flourPctTotal = flours.reduce((s, i) => s + (i.percentage || 0), 0);
 
-  // Update bloem percentage kolommen (berekend op basis van grammen)
+  // Update bloem hoeveelheden (berekend, readonly)
   flours.forEach((ing) => {
-    const pct = document.querySelector(`[data-flour-index="${ing.index}"][data-kind="percentage"]`);
     const amt = document.querySelector(`[data-flour-index="${ing.index}"][data-kind="amount"]`);
-    if (pct && pct !== active) pct.value = ing.percentage > 0 ? fmt(ing.percentage, 1) : "";
-    if (amt && amt !== active) amt.value = ing.amount > 0 ? fmt(ing.amount, 0) : "";
+    if (amt) amt.value = ing.amount > 0 ? fmt(ing.amount, 1) : "";
   });
 
-  // Update bloem totaal display
-  const flourDisplayTotal = document.querySelector("[data-flour-display-total]");
-  if (flourDisplayTotal) flourDisplayTotal.value = flourTotal > 0 ? fmt(flourTotal, 0) : "";
-
-  // Update percentage indicator kleur
+  // Update percentage indicator
   const flourPctEl = document.querySelector("[data-flour-pct-total]");
   if (flourPctEl) {
-    flourPctEl.textContent = `${fmt(flourPctTotal, 1)}%`;
+    flourPctEl.textContent = `100% / ${fmt(flourPctTotal, 1)}%`;
     flourPctEl.className = `pct-total ${Math.abs(flourPctTotal - 100) < 0.1 ? "pct-ok" : flourPctTotal > 100 ? "pct-over" : "pct-under"}`;
   }
 
-  // Update toevoegingen grammen
+  // Update toevoegingen grammen (berekend, readonly)
   calculateAdditions(recipe).forEach((ing) => {
     const amt = document.querySelector(`[data-addition-index="${ing.index}"][data-kind="amount"]`);
-    if (amt && amt !== active) amt.value = fmt(ing.amount, 1);
+    if (amt) amt.value = ing.amount > 0 ? fmt(ing.amount, 1) : "";
   });
 
   // Update metrics
@@ -1210,11 +1189,9 @@ function updateComputedFields() {
   const fd = document.querySelector("[data-flour-display]");
   const dw = document.querySelector("[data-dough-weight]");
   const hy = document.querySelector("[data-hydration]");
-  const lw = document.querySelector("[data-loaf-weight]");
   if (fd) fd.textContent = fmtW(flourTotal);
   if (dw) dw.textContent = fmtW(total);
   if (hy) hy.textContent = fmtPct(hydration);
-  if (lw) lw.textContent = fmtW(total / (recipe.loafCount || 1));
 }
 
 // ─── Dictation ────────────────────────────────────────────────────────────────

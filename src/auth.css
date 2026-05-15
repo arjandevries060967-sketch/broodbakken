@@ -284,3 +284,25 @@ input[readonly] {
   color: var(--steen-grijs);
   cursor: default;
 }
+
+/* ── Bloem totaal indicator ──────────────────────────────────────────────── */
+.flour-total-indicator {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-left: 10px; font-family: Inter, sans-serif;
+}
+
+.flour-total-input {
+  width: 80px; min-height: 30px; padding: 4px 8px;
+  border: 1px solid rgba(122,63,36,0.22); border-radius: 6px;
+  background: var(--zout-wit); color: var(--oven-donker);
+  font: inherit; font-size: 0.88rem; font-weight: 700;
+}
+
+.flour-total-input:focus {
+  outline: 0; border-color: rgba(122,63,36,0.68);
+  box-shadow: 0 0 0 3px rgba(122,63,36,0.12);
+}
+
+.flour-total-indicator > span:not(.pct-total) {
+  font-size: 0.82rem; color: var(--steen-grijs); font-weight: 600;
+}
