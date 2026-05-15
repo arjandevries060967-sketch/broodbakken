@@ -613,3 +613,38 @@ input[readonly] {
   .recipe-filters { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
   .filter-btn { flex-shrink: 0; }
 }
+
+/* ── Fundamentele overflow fix ───────────────────────────────────────────── */
+@media (max-width: 480px) {
+  #root, .app-shell, main {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  .workbench-screen, .workbench-body,
+  .tile-screen, .ingredients-section,
+  .ingredients-group {
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  .workbench-body { padding: 10px !important; }
+
+  .recipe-header { gap: 12px !important; }
+
+  .recipe-name-field, .category-field,
+  .description-field, .leavening-field {
+    max-width: 100%;
+  }
+
+  .recipe-name-field input { font-size: 1.3rem !important; }
+
+  .flour-total-indicator {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    margin-left: 0 !important;
+    max-width: 100% !important;
+  }
+}
