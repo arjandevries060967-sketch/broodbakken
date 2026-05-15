@@ -630,8 +630,11 @@ function render() {
                 </div>
               </label>
               <label class="description-field">
-                <span>Korte omschrijving</span>
+                <span class="field-header">Korte omschrijving
+                  <button class="dictate-button" data-dictate-target="[data-recipe-description]" type="button">${icon("mic")}Inspreken</button>
+                </span>
                 <textarea data-recipe-description rows="2" placeholder="Korte omschrijving van dit recept">${escapeHtml(recipe.description || "")}</textarea>
+                <small class="dictation-status" data-dictation-status></small>
               </label>
             </div>
             <label class="flour-input">
@@ -1067,10 +1070,24 @@ function updateComputedFields() {
   document.querySelector("[data-loaf-weight]").textContent = formatWeight(totalDoughWeight / (recipe.loafCount || 1));
 }
 
+let autosaveTimer = null;
+
+function scheduleAutosave() {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(async () => {
+    const recipe = getSelectedRecipe();
+    if (!recipe) return;
+    await saveRecipeToDB(recipe);
+    const saveMessage = document.querySelector("[data-save-message]");
+    if (saveMessage) saveMessage.textContent = state.saveMessage;
+  }, 2000);
+}
+
 function markUnsaved() {
   state.saveMessage = "Niet opgeslagen";
   const saveMessage = document.querySelector("[data-save-message]");
   if (saveMessage) saveMessage.textContent = state.saveMessage;
+  scheduleAutosave();
 }
 
 function renderAndRestoreFocus(selector) {
