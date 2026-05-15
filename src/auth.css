@@ -57,6 +57,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   justify-content: center;
+  align-items: center;
+  width: 100%;
 }
 
 /* ── Print stylesheet ────────────────────────────────────────────────────── */
