@@ -166,7 +166,7 @@ async function loadLibrary() {
   }
 }
 
-
+async function seedInitialRecipes() {
   const userId = state.user.id;
   const toInsert = seedRecipes.map((r) => ({ ...r, user_id: userId }));
   const { data, error } = await db.from("recipes").insert(toInsert).select();
