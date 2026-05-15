@@ -561,3 +561,35 @@ input[readonly] {
   .field-header { flex-wrap: wrap; gap: 6px; }
   .dictate-button { font-size: 0.78rem; }
 }
+
+/* ── Mobiel: ingrediënten breedte fix ────────────────────────────────────── */
+@media (max-width: 480px) {
+  .ingredients-section { gap: 16px; }
+  .ingredients-group { padding: 10px; overflow: hidden; }
+  .ingredients-group-title { font-size: 0.88rem; }
+
+  .flour-total-indicator {
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: 4px; margin-left: 0 !important; width: 100%;
+  }
+  .flour-total-input { width: 80px !important; }
+
+  .table-wrap { overflow: hidden; width: 100%; }
+  table, tbody, tr, td { max-width: 100%; }
+
+  tr {
+    display: grid !important;
+    grid-template-columns: 1fr auto auto !important;
+    gap: 6px !important; width: 100% !important;
+  }
+  tr td:first-child { grid-column: 1 / -1 !important; }
+  tr td:nth-child(2) { grid-column: 1 / 2 !important; }
+  tr td:nth-child(3) { grid-column: 2 / 3 !important; }
+  tr td:last-child { grid-column: 3 / 4 !important; }
+
+  .material-input { width: 100% !important; min-width: 0 !important; }
+  .number-cell { min-width: 0 !important; width: 100% !important; max-width: none !important; }
+
+  .metric-row { grid-template-columns: 1fr 1fr !important; }
+  .metric-row > div:last-child { grid-column: 1 / -1; }
+}
