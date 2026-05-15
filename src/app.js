@@ -478,8 +478,7 @@ function renderMyRecipes() {
                       <div class="recipe-tile-badges">
                         ${r.favorite ? `<span class="badge badge-star">★</span>` : ""}
                         ${r.shared ? `<span class="badge badge-shared">${icon("share")}Gedeeld</span>` : ""}
-                      </div>
-                    </div>
+                      </div>                    </div>
                     <span class="recipe-tile-cat">${esc(r.category || "Overig")}</span>
                     <span class="recipe-tile-meta">${fmtW(r.flourTotal || 0)} bloem · ${fmtPct(r.ingredients.find((i) => i.name === "Water")?.percentage || 0)} hydratatie</span>
                     ${r.description ? `<p class="recipe-tile-desc">${esc(preview(r.description))}</p>` : ""}
@@ -499,14 +498,12 @@ function renderMyRecipes() {
 function renderLibrary() {
   const content = () => {
     if (state.libraryLoading) return `<p class="empty-state">Bibliotheek laden...</p>`;
-    if (state.library.length === 0) return `<p class="empty-state">Nog geen gedeelde recepten. Zodra iemand een recept deelt verschijnt het hier.</p>`;
-
-    const own = state.library.filter((r) => r.userId === state.user.id);
     const others = state.library.filter((r) => r.userId !== state.user.id && !state.hiddenRecipes.has(r.id));
+    if (others.length === 0) return `<p class="empty-state">Nog geen recepten van anderen gedeeld. Zodra iemand een recept deelt verschijnt het hier.</p>`;
 
-    const renderCard = (item, isOwn) => {
+    const renderCard = (item) => {
       const profile = state.libraryProfiles[item.userId];
-      const naam = profile?.display_name || item.userId?.slice(0, 8) || "Onbekend";
+      const naam = profile?.display_name || "Onbekend";
       const avatarUrl = profile?.avatar_url;
       const avatarHtml = avatarUrl
         ? `<img src="${esc(avatarUrl)}" class="avatar-tiny" alt="${esc(naam)}" />`
@@ -517,7 +514,6 @@ function renderLibrary() {
         <div class="recipe-tile-body">
           <div class="recipe-tile-top">
             <span class="recipe-tile-name">${esc(item.name)}</span>
-            ${isOwn ? `<span class="badge badge-own">Jouw recept</span>` : ""}
           </div>
           <span class="recipe-tile-cat">${esc(item.category || "Overig")}</span>
           <span class="recipe-tile-meta">${fmtW(item.flourTotal || 0)} bloem · ${fmtPct(item.ingredients.find((i) => i.name === "Water")?.percentage || 0)} hydratatie</span>
@@ -525,25 +521,13 @@ function renderLibrary() {
           <div class="library-author">${avatarHtml}<span>${esc(naam)}</span></div>
         </div>
         <div class="recipe-tile-actions">
-          ${isOwn
-            ? `<button class="tool-button" data-goto-recipe="${item.id}" type="button">${icon("edit")}Openen</button>
-               <button class="icon-action danger" data-unpublish="${item.id}" type="button" title="Privé maken">${icon("share")}</button>`
-            : `<button class="tool-button" data-copy-library="${item.id}" type="button">${icon("copy")}Kopiëren</button>
-               <button class="icon-action danger" data-hide-recipe="${item.id}" type="button" title="Verbergen">${icon("trash")}</button>`}
+          <button class="tool-button" data-copy-library="${item.id}" type="button">${icon("copy")}Kopiëren</button>
+          <button class="icon-action danger" data-hide-recipe="${item.id}" type="button" title="Verbergen">${icon("trash")}</button>
         </div>
-      </article>`;};
+      </article>`;
+    };
 
-    return `
-      ${own.length > 0 ? `
-        <section class="tile-section">
-          <h3 class="tile-section-title">Jouw gedeelde recepten</h3>
-          <div class="tile-grid">${own.map((r) => renderCard(r, true)).join("")}</div>
-        </section>` : ""}
-      ${others.length > 0 ? `
-        <section class="tile-section">
-          <h3 class="tile-section-title">Gedeeld door anderen</h3>
-          <div class="tile-grid">${others.map((r) => renderCard(r, false)).join("")}</div>
-        </section>` : ""}`;
+    return `<div class="tile-grid">${others.map(renderCard).join("")}</div>`;
   };
 
   return `
