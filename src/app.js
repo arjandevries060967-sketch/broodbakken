@@ -82,6 +82,8 @@ const state = {
   categories: [...CATEGORY_OPTIONS],
   loading: true,
   authView: "login", // "login" | "register"
+  library: [], // gedeelde recepten van andere gebruikers
+  libraryLoading: false,
 };
 
 const root = document.querySelector("#root");
@@ -149,7 +151,22 @@ async function loadRecipesFromDB() {
   state.categories = getCategoriesFromRecipes(state.recipes);
 }
 
-async function seedInitialRecipes() {
+async function loadLibrary() {
+  state.libraryLoading = true;
+  const { data, error } = await db
+    .from("recipes")
+    .select("*")
+    .eq("shared", true)
+    .neq("user_id", state.user.id)
+    .order("updated_at", { ascending: false });
+
+  state.libraryLoading = false;
+  if (!error && data) {
+    state.library = data.map(dbToLocal);
+  }
+}
+
+
   const userId = state.user.id;
   const toInsert = seedRecipes.map((r) => ({ ...r, user_id: userId }));
   const { data, error } = await db.from("recipes").insert(toInsert).select();
@@ -674,6 +691,7 @@ function render() {
             <button class="${state.activeTab === "ingredients" ? "active" : ""}" data-tab="ingredients" type="button">Ingrediënten</button>
             <button class="${state.activeTab === "method" ? "active" : ""}" data-tab="method" type="button">Werkwijze</button>
             <button class="${state.activeTab === "logbook" ? "active" : ""}" data-tab="logbook" type="button">Logboek</button>
+            <button class="${state.activeTab === "library" ? "active" : ""}" data-tab="library" type="button">Bibliotheek</button>
           </div>
 
           ${state.activeTab === "ingredients" ? `
@@ -760,6 +778,26 @@ function render() {
               </div>
             </section>
           `}
+          ${state.activeTab === "library" ? `
+            <section class="library-workspace" aria-label="Gedeelde recepten bibliotheek">
+              ${state.libraryLoading ? `<p class="empty-state">Bibliotheek laden...</p>` :
+                state.library.length === 0 ? `<p class="empty-state">Nog geen gedeelde recepten van andere gebruikers. Zodra iemand een recept deelt verschijnt het hier.</p>` :
+                `<div class="library-grid">
+                  ${state.library.map((item) => `
+                    <article class="library-card">
+                      <div class="library-card-info">
+                        <strong>${escapeHtml(item.name)}</strong>
+                        <small>${escapeHtml(item.category || "Overig")}</small>
+                        <span>${formatWeight(item.flourTotal || 0)} bloem · ${formatPercent(item.ingredients.find(i => i.name === "Water")?.percentage || 0)} hydratatie</span>
+                        ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
+                      </div>
+                      <button class="tool-button" data-copy-library="${item.id}" type="button">${icon("plus")}Kopiëren naar mijn recepten</button>
+                    </article>
+                  `).join("")}
+                </div>`
+              }
+            </section>
+          ` : ""}
         </section>
       </section>
 
@@ -853,9 +891,33 @@ function bindEvents() {
   });
 
   document.querySelectorAll("[data-tab]").forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       state.activeTab = button.dataset.tab;
+      if (state.activeTab === "library" && state.library.length === 0) {
+        state.libraryLoading = true;
+        render();
+        await loadLibrary();
+      }
       render();
+    });
+  });
+
+  document.querySelectorAll("[data-copy-library]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const sourceId = button.dataset.copyLibrary;
+      const source = state.library.find((r) => r.id === sourceId);
+      if (!source) return;
+      const copy = cloneRecipe(source);
+      copy.shared = false;
+      const saved = await insertRecipeToDB(copy);
+      if (saved) {
+        state.recipes.push(saved);
+        state.selectedRecipeId = saved.id;
+        state.categories = getCategoriesFromRecipes(state.recipes);
+        state.activeTab = "ingredients";
+        state.saveMessage = `"${saved.name}" toegevoegd aan jouw recepten`;
+        render();
+      }
     });
   });
 

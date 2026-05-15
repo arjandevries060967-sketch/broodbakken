@@ -1,3 +1,56 @@
+/* ── Bibliotheek ─────────────────────────────────────────────────────────── */
+.library-workspace {
+  display: grid;
+  gap: 12px;
+}
+
+.library-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.library-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--lijn);
+  border-radius: var(--radius);
+  background: #fbf4e8;
+}
+
+.library-card-info {
+  display: grid;
+  gap: 4px;
+}
+
+.library-card-info strong {
+  color: var(--oven-donker);
+  font-size: 1rem;
+  font-family: Fraunces, Georgia, serif;
+}
+
+.library-card-info small {
+  color: var(--gist-groen);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.library-card-info span {
+  color: var(--steen-grijs);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.library-card-info p {
+  margin: 4px 0 0;
+  color: var(--steen-grijs);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
 /* ── Sidebar actions ─────────────────────────────────────────────────────── */
 .sidebar-actions .tool-button {
   white-space: nowrap;
