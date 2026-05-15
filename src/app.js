@@ -11,6 +11,14 @@ const RATING_OPTIONS = [
   { value: "goed", label: "Goed" },
   { value: "favoriet", label: "Favoriet" },
 ];
+const INGREDIENT_LIBRARY = [
+  "T65 label rouge", "Tarwebloem", "Patentbloem", "Tarwe volkoren", "Tarwe volkoren Molensteen",
+  "Roggebloem", "Roggemeel", "Speltbloem", "Spelt volkoren", "Emmer", "Eenkorn",
+  "Water", "Zout", "Gedroogde gist", "Verse gist", "Zuurdesem", "Levain",
+  "Basterdsuiker", "Honing", "Mout", "Broodpoeder", "Glutenpoeder",
+  "Boter", "Olijfolie", "Zonnebloemolie", "Melk", "Ei",
+  "Zonnebloempitten", "Pompoenpitten", "Sesamzaad", "Lijnzaad", "Havervlokken", "Rozijnen", "Krenten",
+];
 const SEED_RECIPES = [
   {
     name: "Wit", flour_total: 0, category: "Wit brood",
@@ -246,6 +254,18 @@ function getCategoriesFromRecipes(recipes) {
   return [...new Set([...CATEGORY_OPTIONS, ...recipes.map((r) => r.category).filter(Boolean)])].sort(
     (a, b) => a.localeCompare(b, "nl", { sensitivity: "base" })
   );
+}
+function getIngredientLibrary() {
+  const names = new Set(INGREDIENT_LIBRARY);
+  state.recipes.forEach((recipe) => {
+    [...(recipe.flours || []), ...(recipe.additions || [])].forEach((item) => {
+      if (item.name?.trim()) names.add(item.name.trim());
+    });
+  });
+  return [...names].sort((a, b) => a.localeCompare(b, "nl", { sensitivity: "base" }));
+}
+function renderIngredientDatalist() {
+  return `<datalist id="ingredient-library">${getIngredientLibrary().map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist>`;
 }
 function createBlankRecipe() {
   return {
@@ -681,6 +701,7 @@ function renderWorkbench() {
           </div>
 
           ${state.activeTab === "ingredients" ? `
+            ${renderIngredientDatalist()}
             <div class="ingredients-section">
 
               <div class="ingredients-group">
@@ -703,7 +724,7 @@ function renderWorkbench() {
                     <tbody>
                       ${flours.map((ing) => `
                         <tr>
-                          <td><input class="material-input" data-flour-index="${ing.index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. T65 label rouge" /></td>
+                          <td><input class="material-input" list="ingredient-library" data-flour-index="${ing.index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. T65 label rouge" /></td>
                           <td><label class="number-cell"><input data-flour-index="${ing.index}" data-kind="percentage" inputmode="decimal" min="0" max="100" step="0.1" type="number" value="${ing.percentage > 0 ? fmt(ing.percentage, 1) : ""}" placeholder="%" /><span>%</span></label></td>
                           <td><label class="number-cell amount-cell"><input data-flour-index="${ing.index}" data-kind="amount" inputmode="decimal" min="0" step="0.1" type="number" value="${ing.amount > 0 ? fmt(ing.amount, 1) : ""}" placeholder="g" /><span>g</span></label></td>
                           <td><button class="icon-action danger" data-delete-flour="${ing.index}" type="button">${icon("trash")}</button></td>
@@ -724,7 +745,7 @@ function renderWorkbench() {
                     <tbody>
                       ${additions.map((ing) => `
                         <tr>
-                          <td><input class="material-input" data-addition-index="${ing.index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. water" /></td>
+                          <td><input class="material-input" list="ingredient-library" data-addition-index="${ing.index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. water" /></td>
                           <td><label class="number-cell"><input data-addition-index="${ing.index}" data-kind="percentage" inputmode="decimal" min="0" step="0.1" type="number" value="${ing.percentage > 0 ? fmt(ing.percentage, 1) : ""}" placeholder="%" /><span>%</span></label></td>
                           <td><label class="number-cell amount-cell"><input data-addition-index="${ing.index}" data-kind="amount" readonly tabindex="-1" type="number" value="${ing.amount > 0 ? fmt(ing.amount, 1) : ""}" placeholder="–" /><span>g</span></label></td>
                           <td><button class="icon-action danger" data-delete-addition="${ing.index}" type="button">${icon("trash")}</button></td>
@@ -751,6 +772,10 @@ function renderWorkbench() {
               <form class="note-form note-form-wide" data-note-form>
                 <input data-note-date type="date" value="${todayValue()}" />
                 <select data-note-rating>${renderRatingOptions("goed")}</select>
+                <label class="note-temp-field">
+                  <span>Oven</span>
+                  <input data-note-oven-temp type="number" inputmode="numeric" min="0" max="350" step="1" placeholder="°C" />
+                </label>
                 <div class="dictation-field">
                   <button class="dictate-button" data-dictate-target="[data-note-text]" type="button">${icon("mic")}Inspreken</button>
                   <textarea data-note-text rows="4" placeholder="Nieuwe logboeknotitie"></textarea>
@@ -765,10 +790,12 @@ function renderWorkbench() {
                       <summary>
                         <time>${esc(note.date)}</time>
                         <strong class="rating-badge ${esc(note.rating || "ok")}">${ratingLabel(note.rating)}</strong>
+                        ${note.ovenTemp ? `<strong class="temp-badge">${esc(note.ovenTemp)}°C</strong>` : ""}
                         <span>${esc(preview(note.text))}</span>
                       </summary>
                       <div class="note-body">
                         <div>
+                          ${note.ovenTemp ? `<p class="note-meta">Oven: ${esc(note.ovenTemp)}°C</p>` : ""}
                           <p>${esc(note.text)}</p>
                           ${renderSnapshot(note.snapshot)}
                         </div>
@@ -1162,10 +1189,13 @@ function bindEvents() {
     e.preventDefault();
     const recipe = getSelectedRecipe();
     const text = document.querySelector("[data-note-text]").value.trim();
-    if (!text) { document.querySelector("[data-note-text]").focus(); return; }
+    const ovenTempValue = Number(document.querySelector("[data-note-oven-temp]").value);
+    const ovenTemp = Number.isFinite(ovenTempValue) && ovenTempValue > 0 ? Math.round(ovenTempValue) : null;
+    if (!text && !ovenTemp) { document.querySelector("[data-note-text]").focus(); return; }
     recipe.notes.unshift({
       date: fmtDate(document.querySelector("[data-note-date]").value || todayValue()),
       rating: document.querySelector("[data-note-rating]").value || "ok",
+      ovenTemp,
       snapshot: createBakeSnapshot(recipe), text,
     });
     document.querySelector("[data-note-text]").value = "";

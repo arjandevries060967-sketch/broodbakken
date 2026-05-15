@@ -420,7 +420,7 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
   .icon-action { width: 36px; height: 36px; }
 
   .note-form-wide { grid-template-columns: 1fr !important; }
-  .note summary { grid-template-columns: auto auto minmax(0,1fr) !important; padding: 9px 10px; gap: 7px; }
+  .note summary { grid-template-columns: auto auto auto minmax(0,1fr) !important; padding: 9px 10px; gap: 7px; }
   .note time { font-size: 0.76rem; }
   .note-body { grid-template-columns: 1fr !important; padding: 0 10px 10px; }
   .note-actions { display: flex; justify-content: space-between; align-items: center; }
