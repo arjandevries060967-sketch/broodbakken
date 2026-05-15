@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Broodboek — inloggen</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Inter, system-ui, sans-serif;
+        background: #f6efe2;
+        color: #514d46;
+      }
+      p {
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <p id="msg">Account bevestigen...</p>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      const SUPABASE_URL = "https://hyoicgalewuficlmancd.supabase.co";
+      const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5b2ljZ2FsZXd1ZmljbG1hbmNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NjgwNzIsImV4cCI6MjA5NDM0NDA3Mn0.8O7X9SObL2um55BiAuwQwQadQ8v4WmHkdqnQwEttLp4";
+      const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      async function handleCallback() {
+        const hash = window.location.hash;
+        const params = new URLSearchParams(hash.replace("#", "?").replace("?", ""));
+        const accessToken = params.get("access_token");
+        const refreshToken = params.get("refresh_token");
+
+        if (accessToken && refreshToken) {
+          await db.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+          document.getElementById("msg").textContent = "Account bevestigd! Je wordt doorgestuurd...";
+          setTimeout(() => {
+            window.location.href = "/broodbakken/";
+          }, 1500);
+        } else {
+          document.getElementById("msg").textContent = "Bevestiging mislukt. Probeer opnieuw in te loggen.";
+          setTimeout(() => {
+            window.location.href = "/broodbakken/";
+          }, 2500);
+        }
+      }
+
+      handleCallback();
+    </script>
+  </body>
+</html>
