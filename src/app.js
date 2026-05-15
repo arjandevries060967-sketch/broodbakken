@@ -566,8 +566,7 @@ function render() {
         <aside class="recipe-panel" aria-label="Recepten">
           <div class="panel-heading">${icon("book")}<h2>Recepten</h2></div>
           <div class="sidebar-actions">
-            <button class="tool-button" data-new-recipe type="button">${icon("plus")}Nieuw</button>
-            <button class="tool-button primary" data-save-recipes type="button">${icon("save")}Opslaan</button>
+            <button class="tool-button primary" data-new-recipe type="button">${icon("plus")}Nieuw recept</button>
           </div>
           <details class="more-options">
             <summary>Meer opties</summary>
