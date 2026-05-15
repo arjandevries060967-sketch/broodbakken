@@ -13,7 +13,7 @@ const RATING_OPTIONS = [
 ];
 const SEED_RECIPES = [
   {
-    name: "Wit", flour_total: 400, category: "Wit brood",
+    name: "Wit", flour_total: 0, category: "Wit brood",
     description: "Luchtig wit brood met T65 label rouge, boter en een zachte kruim.",
     method: "Meng de ingrediënten, kneed tot een soepel deeg, laat rijzen, vorm het brood en bak heet af.",
     favorite: false, shared: false, last_used_at: 0, target_dough_weight: 0, loaf_count: 1,
@@ -28,7 +28,7 @@ const SEED_RECIPES = [
     notes: [{ date: "20 okt 2024", rating: "goed", text: "Deeg opgebold en laten rijzen in de oven op 30 graden. Lekker van smaak; volgende keer de eerste rijs iets korter houden." }],
   },
   {
-    name: "Bruin 35", flour_total: 700, category: "Bruin brood",
+    name: "Bruin 35", flour_total: 0, category: "Bruin brood",
     description: "Bruin brood met 35% volkorenmeel, extra broodpoeder en zonnebloemolie.",
     method: "Kneed het deeg goed door, laat rijzen tot dubbel volume, vorm en bak in blik of op steen.",
     favorite: false, shared: false, last_used_at: 0, target_dough_weight: 0, loaf_count: 1,
@@ -249,10 +249,10 @@ function getCategoriesFromRecipes(recipes) {
 }
 function createBlankRecipe() {
   return {
-    name: "Nieuw recept", flourTotal: 500, loafCount: 1,
+    name: "Nieuw recept", flourTotal: 0, loafCount: 1,
     category: "Overig", leavening: "gist", description: "", favorite: false, shared: false,
     lastUsedAt: Date.now(),
-    flours: [{ name: "", percentage: 100, unit: "g", _new: true }],
+    flours: [{ name: "", percentage: 0, unit: "g", _new: true }],
     additions: [],
     notes: [],
   };
