@@ -239,87 +239,160 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
   .app-shell { width: 100% !important; padding: 0 !important; }
 }
 
-/* ── Mobiel tegel en header fixes ────────────────────────────────────────── */
-@media (max-width: 600px) {
-  .tile-screen-header { flex-wrap: nowrap; }
-  .tile-screen-header h2 { flex-shrink: 1; min-width: 0; }
-  .tile-screen-header .tool-button { flex-shrink: 0; }
-
-  .recipe-tile { overflow: hidden; width: 100%; }
-  .recipe-tile-actions {
-    display: grid !important;
-    grid-template-columns: 1fr auto auto auto !important;
-    gap: 6px !important;
-    width: 100% !important;
-    flex-wrap: nowrap !important;
-  }
-}
-
-/* Tablet: 2 kolommen tegels */
+/* ── Mobiel: compacte app-layout ─────────────────────────────────────────── */
 @media (max-width: 900px) {
   .tile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* Mobiel: alles op 1 kolom, compacte layout */
 @media (max-width: 600px) {
-  /* Prevent horizontal scroll */
   html, body, #root { overflow-x: hidden; max-width: 100vw; }
 
-  .app-shell { width: 100% !important; padding: 0 0 20px !important; }
+  .app-shell { width: 100% !important; padding: 0 0 20px !important; gap: 10px !important; }
 
-  /* Topbar */
   .topbar {
+    position: sticky; top: 0; z-index: 100;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px 10px;
+    padding: 9px 10px !important;
     border-radius: 0 !important; border-left: none !important; border-right: none !important;
-    padding: 10px 12px !important; flex-wrap: wrap; gap: 8px;
   }
-  .topbar h1 { font-size: 1.4rem !important; }
-  .brand-mark { width: 42px !important; }
+  .brand-lockup { gap: 9px; min-width: 0; }
+  .brand-mark { width: 38px !important; }
+  .topbar h1 { font-size: 1.18rem !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .main-nav {
+    grid-column: 1 / -1;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+    padding-top: 2px;
+  }
+  .main-nav:has([data-go-back]) { grid-template-columns: 1fr; }
+  .nav-btn {
+    justify-content: center;
+    min-height: 38px;
+    padding: 7px 8px !important;
+    font-size: 0.78rem !important;
+    background: rgba(255,250,241,0.72);
+    border-color: var(--lijn);
+  }
+  .topbar-user { gap: 6px; }
   .user-email { display: none; }
-  .nav-btn { padding: 6px 10px; font-size: 0.78rem; }
+  #btn-logout { width: 38px; padding: 0 !important; font-size: 0; }
+  #btn-logout svg { margin: 0; }
+  .avatar-small { width: 34px; height: 34px; }
 
-  /* Tegels */
-  .tile-grid { grid-template-columns: 1fr !important; }
-  .tile-screen {
-    border-radius: 0 !important; border-left: none !important;
-    border-right: none !important; padding: 12px !important;
-  }
-  .tile-screen-header .tool-button { flex: 1; }
-  .recipe-filters { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
-  .filter-btn { flex-shrink: 0; }
-
-  /* Werkbench */
+  .tile-screen,
   .workbench-screen {
-    border-radius: 0 !important; border-left: none !important; border-right: none !important;
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    box-shadow: none !important;
   }
-  .workbench-topbar { padding: 10px 12px !important; flex-wrap: wrap; gap: 8px; }
-  .workbench-title { font-size: 1.1rem !important; }
-  .workbench-actions { width: 100%; flex-wrap: wrap; }
+  .tile-screen { padding: 12px !important; }
+  .tile-screen-header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .tile-screen-header h2 { font-size: 1.18rem !important; }
+  .tile-screen-header .tool-button { min-height: 38px; padding-inline: 10px; }
+
+  .recipe-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 0 -12px 12px;
+    padding: 0 12px 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .recipe-filters::-webkit-scrollbar { display: none; }
+  .filter-btn { flex: 0 0 auto; min-height: 34px; }
+
+  .tile-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
+  .recipe-tile {
+    gap: 10px;
+    width: 100%;
+    padding: 12px;
+    overflow: hidden;
+  }
+  .recipe-tile-top { gap: 6px; }
+  .recipe-tile-name { font-size: 1.05rem; }
+  .recipe-tile-cat { font-size: 0.68rem; }
+  .recipe-tile-meta, .recipe-tile-desc { font-size: 0.78rem; }
+  .recipe-tile-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 36px 36px 36px !important;
+    gap: 7px !important;
+    width: 100% !important;
+  }
+  .recipe-tile-actions .tool-button { min-width: 0; justify-content: center !important; }
+  .recipe-tile-actions .icon-action { width: 36px; height: 36px; }
+
+  .workbench-topbar {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 10px 12px !important;
+    gap: 8px;
+  }
+  .workbench-title { font-size: 1.16rem !important; overflow-wrap: anywhere; }
+  .workbench-actions {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+  }
+  .workbench-actions > .tool-button,
+  .workbench-actions > .more-options > summary {
+    width: 100%;
+    min-height: 38px;
+    padding-inline: 8px;
+  }
+  .workbench-actions .save-message { grid-column: 1 / -1; min-height: 0; font-size: 0.78rem; }
+  .more-options { min-width: 0; }
+  .more-options-list { right: 0; left: auto; min-width: min(230px, calc(100vw - 24px)); }
   .workbench-body { padding: 12px !important; }
 
-  /* Recipe header */
-  .recipe-header { grid-template-columns: 1fr !important; gap: 12px !important; }
-  .recipe-name-field input { font-size: 1.4rem !important; }
+  .recipe-header { grid-template-columns: 1fr !important; gap: 12px !important; margin-bottom: 12px; }
+  .recipe-name-field input { font-size: 1.36rem !important; }
   .category-field > div { grid-template-columns: 1fr !important; gap: 8px; }
   .leavening-options { gap: 12px; }
 
-  /* Metrics */
-  .metric-row { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+  .metric-row { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 6px !important; }
+  .metric-row > div { padding: 9px 8px !important; gap: 3px; min-width: 0; }
+  .metric-row svg { width: 16px; height: 16px; }
+  .metric-row span { font-size: 0.62rem !important; }
+  .metric-row strong { font-size: 0.95rem !important; overflow-wrap: anywhere; }
 
-  /* Bloem indicator */
+  .tabbar {
+    position: sticky; top: 94px; z-index: 80;
+    margin: 12px -12px 12px;
+    padding: 0 12px;
+    overflow-x: auto;
+    background: var(--zout-wit);
+  }
+  .tabbar button { flex: 1 0 auto; min-height: 42px; padding: 9px 12px; font-size: 0.84rem; }
+
+  .ingredients-section { gap: 12px; }
   .ingredients-group { padding: 10px !important; overflow: hidden; }
-  .ingredients-group-title { flex-wrap: wrap; gap: 6px; font-size: 0.88rem !important; }
-  .flour-total-indicator { margin-left: 0 !important; flex-wrap: wrap; gap: 4px; }
-  .flour-total-input { width: 80px !important; }
+  .ingredients-group-title { align-items: flex-start; gap: 6px; font-size: 0.95rem !important; }
+  .flour-total-indicator { width: 100%; margin-left: 0 !important; gap: 5px; }
+  .flour-total-input { width: 92px !important; }
 
-  /* Tabel → gestapeld */
   .table-wrap { overflow-x: hidden !important; }
   table, tbody { display: block !important; width: 100% !important; min-width: 0 !important; }
   thead { display: none !important; }
   tr {
     display: grid !important;
-    grid-template-columns: 1fr auto auto !important;
-    gap: 6px !important; align-items: center !important;
-    padding: 10px 0 !important; border-bottom: 1px solid var(--lijn) !important;
+    grid-template-columns: minmax(0, 1fr) minmax(92px, 0.72fr) 38px !important;
+    gap: 7px !important;
+    align-items: end !important;
+    padding: 10px 0 !important;
+    border-bottom: 1px solid var(--lijn) !important;
     width: 100% !important;
   }
   tr:last-child { border-bottom: none !important; }
@@ -328,21 +401,32 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
   tr td:nth-child(2) { grid-column: 1 / 2 !important; }
   tr td:nth-child(3) { grid-column: 2 / 3 !important; }
   tr td:last-child { grid-column: 3 / 4 !important; }
-  .material-input { width: 100% !important; min-width: 0 !important; }
-  .number-cell { min-width: 0 !important; width: auto !important; }
-
-  /* Logboek */
-  .note-form-wide { grid-template-columns: 1fr !important; }
-  .note summary { grid-template-columns: auto auto minmax(0,1fr) !important; }
-
-  /* Meer opties */
-  .more-options-list { right: 0; left: auto; min-width: 180px; }
-
-  /* Tegel acties */
-  .recipe-tile-actions {
-    display: grid !important;
-    grid-template-columns: 1fr auto auto auto !important;
-    gap: 6px !important;
+  tr td:nth-child(2)::before,
+  tr td:nth-child(3)::before {
+    display: block;
+    margin: 0 0 3px 2px;
+    color: var(--gist-groen);
+    font-size: 0.62rem;
+    font-weight: 900;
+    text-transform: uppercase;
   }
-  .recipe-tile-actions .tool-button { justify-content: center !important; }
+  tr td:nth-child(2)::before { content: "Percentage"; }
+  tr td:nth-child(3)::before { content: "Hoeveelheid"; }
+  .material-input { width: 100% !important; min-height: 38px; font-size: 0.88rem; }
+  .number-cell { min-width: 0 !important; width: 100% !important; min-height: 38px; padding: 4px 8px; }
+  .number-cell input { font-size: 0.88rem; }
+  .icon-action { width: 36px; height: 36px; }
+
+  .note-form-wide { grid-template-columns: 1fr !important; }
+  .note summary { grid-template-columns: auto auto minmax(0,1fr) !important; padding: 9px 10px; gap: 7px; }
+  .note time { font-size: 0.76rem; }
+  .note-body { grid-template-columns: 1fr !important; padding: 0 10px 10px; }
+  .note-actions { display: flex; justify-content: space-between; align-items: center; }
+}
+
+@media (max-width: 380px) {
+  .workbench-actions { grid-template-columns: 1fr 1fr; }
+  .metric-row { grid-template-columns: 1fr !important; }
+  tr { grid-template-columns: minmax(0, 1fr) minmax(86px, 0.8fr) 36px !important; }
+  .tool-button { font-size: 0.78rem; }
 }
