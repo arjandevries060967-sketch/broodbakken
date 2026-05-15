@@ -260,7 +260,7 @@ function cloneRecipe(recipe) {
   return { ...structuredClone(recipe), name: `${recipe.name} kopie`, favorite: false, shared: false, lastUsedAt: Date.now() };
 }
 
-// Bloem: gebruiker vult grammen in, percentages worden berekend t.o.v. totaal
+// Bloem: grammen leidend als _amountLast=true, anders percentage leidend
 function getTotalFlourWeight(recipe) {
   return (recipe.flours || []).reduce((s, i) => s + (Number(i.amount) || 0), 0);
 }
@@ -270,7 +270,7 @@ function calculateFlours(recipe) {
   return (recipe.flours || []).map((i, index) => ({
     ...i, index,
     amount: Number(i.amount) || 0,
-    percentage: total > 0 ? Math.round(((Number(i.amount) || 0) / total) * 1000) / 10 : 0,
+    percentage: total > 0 ? Math.round(((Number(i.amount) || 0) / total) * 1000) / 10 : (Number(i.percentage) || 0),
   }));
 }
 
@@ -657,7 +657,6 @@ function renderWorkbench() {
             <div>${icon("grain")}<span>Bloem/meel</span><strong data-flour-display>${fmtW(flourTotal)}</strong></div>
             <div>${icon("flame")}<span>Hydratatie</span><strong data-hydration>${fmtPct(hydration)}</strong></div>
             <div>${icon("scale")}<span>Deeggewicht</span><strong data-dough-weight>${fmtW(totalDoughWeight)}</strong></div>
-            <div>${icon("note")}<span>Per brood</span><strong data-loaf-weight>${fmtW(loafWeight)}</strong></div>
           </div>
 
           <div class="tabbar" role="tablist">
@@ -685,7 +684,7 @@ function renderWorkbench() {
                         <tr>
                           <td><input class="material-input" data-flour-index="${ing.index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. T65 label rouge" /></td>
                           <td><label class="number-cell amount-cell"><input data-flour-index="${ing.index}" data-kind="amount" inputmode="decimal" min="0" step="1" type="number" value="${ing.amount > 0 ? fmt(ing.amount, 0) : ""}" placeholder="gram" /><span>g</span></label></td>
-                          <td><label class="number-cell"><input data-flour-index="${ing.index}" data-kind="percentage" readonly tabindex="-1" type="number" value="${fmt(ing.percentage, 1)}" /><span>%</span></label></td>
+                          <td><label class="number-cell"><input data-flour-index="${ing.index}" data-kind="percentage" inputmode="decimal" min="0" max="100" step="0.1" type="number" value="${ing.percentage > 0 ? fmt(ing.percentage, 1) : ""}" placeholder="%" /><span>%</span></label></td>
                           <td><button class="icon-action danger" data-delete-flour="${ing.index}" type="button">${icon("trash")}</button></td>
                         </tr>`).join("")}
                     </tbody>
@@ -1054,16 +1053,31 @@ function bindEvents() {
     });
   });
 
-  // Bloem/meel events — grammen zijn leidend
+  // Bloem/meel events — grammen of percentage, laatste is leidend
   document.querySelectorAll("[data-flour-index]").forEach((input) => {
     input.addEventListener("input", (e) => {
       const recipe = getSelectedRecipe();
       const idx = Number(e.target.dataset.flourIndex);
       const v = Number(e.target.value);
       const ing = recipe.flours[idx]; if (!ing) return;
-      if (e.target.dataset.kind === "name") { ing.name = e.target.value; delete ing._new; }
-      if (e.target.dataset.kind === "amount") ing.amount = Number.isFinite(v) && v >= 0 ? v : 0;
-      // percentage is readonly, wordt berekend in updateComputedFields
+
+      if (e.target.dataset.kind === "name") {
+        ing.name = e.target.value; delete ing._new;
+      } else if (e.target.dataset.kind === "amount") {
+        // Grammen ingevuld → sla op, percentage wordt berekend
+        ing.amount = Number.isFinite(v) && v >= 0 ? v : 0;
+        ing._amountLast = true;
+      } else if (e.target.dataset.kind === "percentage") {
+        // Percentage ingevuld → bereken grammen op basis van huidig totaal meel
+        ing.percentage = Number.isFinite(v) && v >= 0 ? v : 0;
+        ing._amountLast = false;
+        // Bereken grammen: percentage van totaal alle andere grammen + dit
+        const otherTotal = recipe.flours.reduce((s, i, j) => j !== idx && i._amountLast !== false ? s + (Number(i.amount) || 0) : s, 0);
+        // Als er al grammen zijn bij andere meelsoorten, bereken op basis van die totaal
+        if (otherTotal > 0) {
+          ing.amount = (ing.percentage / 100) * otherTotal / (1 - ing.percentage / 100);
+        }
+      }
       updateComputedFields(); markUnsaved();
     });
   });
@@ -1165,10 +1179,12 @@ function updateComputedFields() {
   const flourTotal = getTotalFlourWeight(recipe);
   const flourPctTotal = flours.reduce((s, i) => s + i.percentage, 0);
 
-  // Update bloem percentage kolommen (readonly)
+  // Update bloem percentage kolommen (berekend op basis van grammen)
   flours.forEach((ing) => {
     const pct = document.querySelector(`[data-flour-index="${ing.index}"][data-kind="percentage"]`);
-    if (pct) pct.value = fmt(ing.percentage, 1);
+    const amt = document.querySelector(`[data-flour-index="${ing.index}"][data-kind="amount"]`);
+    if (pct && pct !== active) pct.value = ing.percentage > 0 ? fmt(ing.percentage, 1) : "";
+    if (amt && amt !== active) amt.value = ing.amount > 0 ? fmt(ing.amount, 0) : "";
   });
 
   // Update bloem totaal display
