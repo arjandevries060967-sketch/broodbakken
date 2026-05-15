@@ -496,6 +496,7 @@ function renderMyRecipes() {
     if (state.recipeFilter === "gist") return r.leavening !== "zuurdesem";
     if (state.recipeFilter === "zuurdesem") return r.leavening === "zuurdesem";
     if (state.recipeFilter === "favoriet") return r.favorite;
+    if (state.recipeFilter === "gedeeld") return r.shared;
     return true;
   });
 
@@ -508,7 +509,7 @@ function renderMyRecipes() {
           <button class="tool-button primary" data-new-recipe type="button">${icon("plus")}Nieuw recept</button>
         </div>
         <div class="recipe-filters">
-          ${["alle", "favoriet", "gist", "zuurdesem"].map((f) => `
+          ${["alle", "favoriet", "gist", "zuurdesem", "gedeeld"].map((f) => `
             <button class="filter-btn ${state.recipeFilter === f ? "active" : ""}" data-filter="${f}">
               ${f === "favoriet" ? "★ " : ""}${f.charAt(0).toUpperCase() + f.slice(1)}
             </button>`).join("")}
