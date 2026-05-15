@@ -791,62 +791,7 @@ function bindEvents() {
   });
 
   document.querySelector("[data-print-recipe]")?.addEventListener("click", () => {
-    const recipe = getSelectedRecipe();
-    const flourTotal = recipe.flourTotal || 0;
-    const calculatedIngredients = calculateIngredients(recipe, flourTotal);
-    const totalDoughWeight = calculatedIngredients.reduce((sum, i) => (i.name || i.percentage > 0) ? sum + i.amount : sum, 0);
-
-    const printWindow = window.open("", "_blank");
-    printWindow.document.write(`
-      <!doctype html>
-      <html lang="nl">
-      <head>
-        <meta charset="UTF-8" />
-        <title>${escapeHtml(recipe.name)}</title>
-        <style>
-          body { font-family: Georgia, serif; max-width: 680px; margin: 40px auto; color: #2d2a25; }
-          h1 { font-size: 2rem; margin: 0 0 4px; }
-          .meta { color: #6f7f4d; font-size: 0.9rem; margin-bottom: 20px; }
-          .desc { margin-bottom: 20px; line-height: 1.6; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-          th { text-align: left; border-bottom: 2px solid #ccc; padding: 6px 8px; font-size: 0.8rem; text-transform: uppercase; color: #6f7f4d; }
-          td { padding: 6px 8px; border-bottom: 1px solid #eee; }
-          td:nth-child(2), td:nth-child(3) { text-align: right; font-variant-numeric: tabular-nums; }
-          .totals { display: flex; gap: 32px; margin-bottom: 20px; font-size: 0.9rem; }
-          .totals strong { display: block; font-size: 1.2rem; }
-          h2 { font-size: 1.1rem; margin: 20px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
-          .method { line-height: 1.7; white-space: pre-wrap; }
-          @media print { body { margin: 20px; } }
-        </style>
-      </head>
-      <body>
-        <h1>${escapeHtml(recipe.name)}</h1>
-        <p class="meta">${escapeHtml(recipe.category)} · ${formatWeight(flourTotal)} bloem</p>
-        ${recipe.description ? `<p class="desc">${escapeHtml(recipe.description)}</p>` : ""}
-        <div class="totals">
-          <div><span>Deeggewicht</span><strong>${formatWeight(totalDoughWeight)}</strong></div>
-          <div><span>Hydratatie</span><strong>${formatPercent(calculatedIngredients.find(i => i.name === "Water")?.percentage || 0)}</strong></div>
-          <div><span>Per brood</span><strong>${formatWeight(totalDoughWeight / (recipe.loafCount || 1))}</strong></div>
-        </div>
-        <h2>Ingrediënten</h2>
-        <table>
-          <thead><tr><th>Ingrediënt</th><th>%</th><th>Gram</th></tr></thead>
-          <tbody>
-            ${calculatedIngredients.filter(i => i.name || i.percentage > 0).map(i => `
-              <tr>
-                <td>${escapeHtml(i.name)}</td>
-                <td>${formatNumber(i.percentage * 100, 1)}%</td>
-                <td>${formatNumber(i.amount, 1)} g</td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-        ${recipe.method ? `<h2>Werkwijze</h2><p class="method">${escapeHtml(recipe.method)}</p>` : ""}
-        <script>window.onload = () => { window.print(); window.close(); }<\/script>
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
+    window.print();
   });
 
   document.querySelector("[data-save-as]").addEventListener("click", async () => {

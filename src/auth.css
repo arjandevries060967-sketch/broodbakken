@@ -1,3 +1,72 @@
+/* ── Sidebar actions ─────────────────────────────────────────────────────── */
+.sidebar-actions .tool-button {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Print stylesheet ────────────────────────────────────────────────────── */
+@media print {
+  .topbar,
+  .recipe-panel,
+  .tabbar,
+  .scale-panel-wrap,
+  .more-options,
+  .sidebar-actions,
+  .save-message,
+  .recent-recipes,
+  .recipe-drawer,
+  .style-board,
+  #btn-logout,
+  .topbar-user,
+  [data-add-ingredient],
+  [data-delete-ingredient],
+  [data-dictate-target],
+  .dictate-button {
+    display: none !important;
+  }
+
+  .dashboard-grid {
+    display: block !important;
+  }
+
+  .workbench {
+    padding: 0 !important;
+  }
+
+  .recipe-header {
+    display: block !important;
+  }
+
+  .metric-row {
+    display: flex !important;
+    gap: 24px;
+    margin: 12px 0;
+  }
+
+  table {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  input, textarea, select {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+
+  .number-cell {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+
+  .app-shell {
+    width: 100% !important;
+    padding: 0 !important;
+  }
+}
+
 /* ── Meer opties ─────────────────────────────────────────────────────────── */
 .more-options {
   margin-bottom: 10px;
