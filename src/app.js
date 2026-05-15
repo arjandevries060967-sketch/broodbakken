@@ -682,6 +682,7 @@ function render() {
                     <th>Gebruikt materiaal</th>
                     <th>Percentage</th>
                     <th>Hoeveelheid</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -700,6 +701,7 @@ function render() {
                           <span>g</span>
                         </label>
                       </td>
+                      <td><button class="icon-action danger" data-delete-ingredient="${index}" type="button" aria-label="Ingrediënt verwijderen">${icon("trash")}</button></td>
                     </tr>
                   `).join("")}
                 </tbody>
@@ -860,6 +862,17 @@ function bindEvents() {
     render();
     const inputs = document.querySelectorAll("[data-kind='name']");
     inputs[inputs.length - 1]?.focus();
+  });
+
+  document.querySelectorAll("[data-delete-ingredient]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const recipe = getSelectedRecipe();
+      const index = Number(button.dataset.deleteIngredient);
+      if (recipe.ingredients.length <= 1) return;
+      recipe.ingredients.splice(index, 1);
+      markUnsaved();
+      render();
+    });
   });
 
   document.querySelector("[data-delete-recipe]").addEventListener("click", async () => {
