@@ -167,13 +167,86 @@
 
 /* ── Responsive werkbench ────────────────────────────────────────────────── */
 @media (max-width: 720px) {
+  /* Topbar compact */
+  .topbar {
+    flex-wrap: wrap; gap: 8px; padding: 14px 16px;
+  }
+  .topbar h1 { font-size: 1.6rem; }
+  .brand-mark { width: 48px !important; }
+  .topbar-user { gap: 8px; }
+  .user-email { display: none; }
+  .main-nav { gap: 4px; }
+  .nav-btn { padding: 6px 10px; font-size: 0.8rem; gap: 5px; }
+  .nav-btn svg { width: 15px; height: 15px; }
+
+  /* Werkbench */
+  .workbench-screen { border-radius: 0; border-left: none; border-right: none; }
+  .workbench-topbar { flex-direction: column; align-items: flex-start; padding: 12px 14px; gap: 8px; }
+  .workbench-title { font-size: 1.2rem; }
+  .workbench-actions { width: 100%; flex-wrap: wrap; gap: 6px; }
+  .workbench-body { padding: 14px; }
+
+  /* Recipe header */
   .recipe-header { grid-template-columns: 1fr !important; }
   .category-field > div { grid-template-columns: 1fr !important; }
-  .workbench-topbar { flex-direction: column; align-items: flex-start; }
-  .workbench-actions { width: 100%; }
-  .metric-row { grid-template-columns: 1fr 1fr !important; }
+  .flour-input { margin-top: 0; }
+
+  /* Metrics */
+  .metric-row { grid-template-columns: 1fr 1fr !important; gap: 8px; }
+
+  /* Tabbar */
+  .tabbar button { padding: 8px 10px; font-size: 0.82rem; }
+
+  /* Tabel → kaartjes op mobiel */
+  .table-wrap { overflow: visible; }
+
+  table thead { display: none; }
+
+  table, tbody, tr { display: block; width: 100%; }
+
+  tr {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 6px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--lijn);
+  }
+
+  tr:last-child { border-bottom: none; }
+
+  td { padding: 0; border: none; display: block; }
+
+  td:first-child { grid-column: 1 / -2; }
+  td:nth-child(2) { grid-column: 1 / 2; }
+  td:nth-child(3) { grid-column: 2 / 3; }
+  td:last-child { grid-column: 3 / 4; grid-row: 1; align-self: start; }
+
+  .material-input { font-size: 0.9rem; }
+  .number-cell { min-width: 80px; }
+  .number-cell input { font-size: 0.85rem; }
+
+  /* Bloem indicator */
+  .flour-total-indicator { flex-wrap: wrap; gap: 4px; }
+  .flour-total-input { width: 70px; }
+
+  /* Ingrediënten groepen */
+  .ingredients-group { padding: 10px; }
+  .ingredients-group-title { font-size: 0.9rem; flex-wrap: wrap; gap: 6px; }
+
+  /* Logboek */
   .note-form-wide { grid-template-columns: 1fr !important; }
-  table { min-width: 360px; }
+  .note summary { grid-template-columns: auto auto 1fr !important; }
+
+  /* Tile scherm */
+  .tile-screen { padding: 14px; border-radius: 0; border-left: none; border-right: none; }
+  .tile-screen-header { margin-bottom: 12px; }
+
+  /* Meer opties */
+  .more-options-list { right: 0; left: auto; min-width: 180px; }
+
+  /* Leavening */
+  .leavening-options { gap: 12px; }
 }
 
 /* ── Print stylesheet ────────────────────────────────────────────────────── */
