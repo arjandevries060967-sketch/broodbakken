@@ -403,7 +403,7 @@ function renderMyRecipes() {
                     ${r.description ? `<p class="recipe-tile-desc">${esc(preview(r.description))}</p>` : ""}
                   </div>
                   <div class="recipe-tile-actions">
-                    <button class="tool-button" data-open-recipe="${r.id}" type="button">${icon("edit")}Bewerken</button>
+                    <button class="tool-button" data-open-recipe="${r.id}" type="button">${icon("edit")}Openen</button>
                     <button class="icon-action ${r.shared ? "active-share" : ""}" data-toggle-shared-tile="${r.id}" type="button" title="${r.shared ? "Privé maken" : "Delen"}">${icon("share")}</button>
                     <button class="icon-action danger" data-delete-tile="${r.id}" type="button" title="Verwijderen">${icon("trash")}</button>
                   </div>
@@ -435,7 +435,7 @@ function renderLibrary() {
         </div>
         <div class="recipe-tile-actions">
           ${isOwn
-            ? `<button class="tool-button" data-goto-recipe="${item.id}" type="button">${icon("edit")}Bewerken</button>
+            ? `<button class="tool-button" data-goto-recipe="${item.id}" type="button">${icon("edit")}Openen</button>
                <button class="icon-action danger" data-unpublish="${item.id}" type="button" title="Privé maken">${icon("share")}</button>`
             : `<button class="tool-button" data-copy-library="${item.id}" type="button">${icon("copy")}Kopiëren</button>`}
         </div>
