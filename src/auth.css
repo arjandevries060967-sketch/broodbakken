@@ -12,58 +12,120 @@
 .nav-btn.active { border-color: rgba(122,63,36,0.3); background: var(--oven-bruin); color: var(--zout-wit); }
 .nav-btn:not(.active):hover { background: var(--rogge); }
 
-/* ── Recipe picker bar ───────────────────────────────────────────────────── */
-.recipe-picker-bar {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  padding: 14px 18px; border-bottom: 1px solid var(--lijn); background: var(--zout-wit);
+/* ── Topbar ──────────────────────────────────────────────────────────────── */
+.topbar { justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.topbar-user { display: flex; align-items: center; gap: 12px; }
+.user-email { color: var(--steen-grijs); font-size: 0.82rem; font-weight: 600; }
+.topbar h1 { font-size: clamp(1.6rem, 5vw, 3rem); }
+
+/* ── Tegel scherm ────────────────────────────────────────────────────────── */
+.tile-screen {
+  border: 1px solid var(--lijn); border-radius: var(--radius);
+  background: var(--zout-wit); box-shadow: var(--schaduw); padding: 22px;
 }
-.recipe-picker {
-  flex: 1; min-width: 160px; min-height: 38px; padding: 7px 10px;
-  border: 1px solid rgba(122,63,36,0.22); border-radius: 6px;
-  background: var(--meel); color: var(--oven-donker);
-  font: inherit; font-size: 0.9rem; font-weight: 700;
+
+.tile-screen-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
 }
-.recipe-screen {
+
+.tile-screen-header h2 { margin: 0; font-size: clamp(1.2rem, 3vw, 1.8rem); }
+
+.tile-section { margin-bottom: 28px; }
+.tile-section-title { margin: 0 0 12px; font-size: 1rem; color: var(--gist-groen); font-weight: 900; text-transform: uppercase; letter-spacing: 0.02em; }
+
+/* Tegels: 3 kolommen op breed, 2 op medium, 1 op mobiel */
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .tile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
+  .tile-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Recepttegel ─────────────────────────────────────────────────────────── */
+.recipe-tile {
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: 14px; border: 1px solid var(--lijn); border-radius: var(--radius);
+  background: #fbf4e8; gap: 12px;
+}
+
+.recipe-tile-body { display: grid; gap: 5px; }
+
+.recipe-tile-top {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+}
+
+.recipe-tile-name {
+  color: var(--oven-donker); font-size: 1rem; font-weight: 800;
+  font-family: Fraunces, Georgia, serif; line-height: 1.2;
+}
+
+.recipe-tile-badges { display: flex; gap: 5px; flex-shrink: 0; flex-wrap: wrap; }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 7px; border-radius: 999px; font-size: 0.7rem; font-weight: 800;
+}
+.badge svg { width: 11px; height: 11px; }
+.badge-star { background: #fff0b8; color: #8a5d12; }
+.badge-shared { background: rgba(122,63,36,0.1); color: var(--oven-bruin); }
+.badge-own { background: rgba(111,127,77,0.12); color: var(--gist-groen); text-transform: uppercase; letter-spacing: 0.02em; }
+
+.recipe-tile-cat { color: var(--gist-groen); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
+.recipe-tile-meta { color: var(--steen-grijs); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.recipe-tile-desc { margin: 4px 0 0; color: var(--steen-grijs); font-size: 0.82rem; line-height: 1.4; }
+
+.recipe-tile-actions {
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+}
+
+.recipe-tile-actions .tool-button { flex: 1; justify-content: center; }
+
+.active-share { border-color: rgba(122,63,36,0.36); background: rgba(122,63,36,0.1); color: var(--oven-bruin); }
+
+/* ── Werkbench scherm ────────────────────────────────────────────────────── */
+.workbench-screen {
   border: 1px solid var(--lijn); border-radius: var(--radius);
   background: var(--zout-wit); box-shadow: var(--schaduw); overflow: hidden;
 }
 
-/* ── Bibliotheek scherm ──────────────────────────────────────────────────── */
-.library-screen {
-  border: 1px solid var(--lijn); border-radius: var(--radius);
-  background: var(--zout-wit); box-shadow: var(--schaduw); padding: 22px;
-}
-.library-section { margin-bottom: 28px; }
-.library-section-title { margin: 0 0 12px; font-size: 1.2rem; color: var(--oven-donker); font-family: Fraunces, Georgia, serif; }
-.library-grid { display: grid; gap: 10px; }
-.library-card {
-  display: grid; grid-template-columns: minmax(0,1fr) auto;
-  gap: 16px; align-items: center; padding: 14px;
-  border: 1px solid var(--lijn); border-radius: var(--radius); background: #fbf4e8;
-}
-.library-card-header { display: flex; align-items: center; gap: 10px; }
-.library-card-info { display: grid; gap: 4px; }
-.library-card-info strong { color: var(--oven-donker); font-size: 1rem; font-family: Fraunces, Georgia, serif; }
-.library-card-info small { color: var(--gist-groen); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
-.library-card-info span { color: var(--steen-grijs); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
-.library-card-info p { margin: 4px 0 0; color: var(--steen-grijs); font-size: 0.85rem; line-height: 1.45; }
-.own-badge {
-  padding: 2px 8px; border-radius: 999px;
-  background: rgba(111,127,77,0.12); color: var(--gist-groen);
-  font-size: 0.72rem; font-weight: 800; text-transform: uppercase;
+.workbench-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+  padding: 14px 18px; border-bottom: 1px solid var(--lijn); background: var(--meel);
 }
 
-/* ── Meer opties ─────────────────────────────────────────────────────────── */
+.workbench-title { margin: 0; font-size: clamp(1.1rem, 3vw, 1.6rem); color: var(--oven-donker); font-family: Fraunces, Georgia, serif; }
+
+.workbench-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.workbench-body { padding: 18px; }
+
+/* ── Meer opties dropdown ────────────────────────────────────────────────── */
 .more-options { position: relative; }
+
 .more-options summary {
-  color: var(--gist-groen); font-size: 0.76rem; font-weight: 900;
-  text-transform: uppercase; cursor: pointer; padding: 6px 0; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 36px; padding: 7px 12px;
+  border: 1px solid var(--lijn); border-radius: 6px;
+  background: #fbf4e8; color: var(--oven-donker);
+  font: inherit; font-size: 0.8rem; font-weight: 900;
+  cursor: pointer; white-space: nowrap; list-style: none;
 }
+.more-options summary::-webkit-details-marker { display: none; }
+
 .more-options-list {
-  position: absolute; top: 100%; left: 0; z-index: 100;
-  display: grid; gap: 4px; min-width: 220px; padding: 10px;
+  position: absolute; top: calc(100% + 6px); right: 0;
+  z-index: 200; display: grid; gap: 4px; min-width: 220px; padding: 10px;
   border: 1px solid var(--lijn); border-radius: var(--radius);
-  background: var(--zout-wit); box-shadow: var(--schaduw); margin-top: 4px;
+  background: var(--zout-wit); box-shadow: var(--schaduw);
 }
 
 /* ── Scale panel wrap ────────────────────────────────────────────────────── */
@@ -86,10 +148,7 @@
   width: min(480px, 100%); border: 1px solid var(--lijn); border-radius: var(--radius);
   background: var(--zout-wit); box-shadow: var(--schaduw); overflow: hidden;
 }
-.auth-brand {
-  display: flex; align-items: center; gap: 18px;
-  padding: 22px; background: var(--meel); border-bottom: 1px solid var(--lijn);
-}
+.auth-brand { display: flex; align-items: center; gap: 18px; padding: 22px; background: var(--meel); border-bottom: 1px solid var(--lijn); }
 .auth-form-wrap { padding: 28px; }
 .auth-form-wrap h2 { margin-bottom: 20px; font-size: 1.5rem; }
 .auth-form { display: grid; gap: 14px; }
@@ -102,28 +161,28 @@
 }
 .auth-form input:focus { outline: 0; border-color: rgba(122,63,36,0.68); box-shadow: 0 0 0 3px rgba(122,63,36,0.12); }
 .auth-submit { margin-top: 6px; min-height: 44px; font-size: 0.95rem; }
-.auth-error {
-  margin: 0 0 16px; padding: 10px 12px; border-radius: 6px;
-  background: #f4e1d6; color: var(--oven-bruin); font-size: 0.88rem; font-weight: 700;
-}
+.auth-error { margin: 0 0 16px; padding: 10px 12px; border-radius: 6px; background: #f4e1d6; color: var(--oven-bruin); font-size: 0.88rem; font-weight: 700; }
 .auth-switch { margin: 18px 0 0; color: var(--steen-grijs); font-size: 0.88rem; }
-.auth-link {
-  padding: 0; border: 0; background: transparent; color: var(--oven-bruin);
-  font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer;
-}
+.auth-link { padding: 0; border: 0; background: transparent; color: var(--oven-bruin); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 
-/* ── Topbar user ─────────────────────────────────────────────────────────── */
-.topbar { justify-content: space-between; }
-.topbar-user { display: flex; align-items: center; gap: 12px; }
-.user-email { color: var(--steen-grijs); font-size: 0.82rem; font-weight: 600; }
+/* ── Responsive werkbench ────────────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .recipe-header { grid-template-columns: 1fr !important; }
+  .category-field > div { grid-template-columns: 1fr !important; }
+  .workbench-topbar { flex-direction: column; align-items: flex-start; }
+  .workbench-actions { width: 100%; }
+  .metric-row { grid-template-columns: 1fr 1fr !important; }
+  .note-form-wide { grid-template-columns: 1fr !important; }
+  table { min-width: 360px; }
+}
 
 /* ── Print stylesheet ────────────────────────────────────────────────────── */
 @media print {
-  .topbar, .recipe-picker-bar, .tabbar, .scale-panel-wrap,
+  .topbar, .workbench-topbar, .tabbar, .scale-panel-wrap,
   .more-options, #btn-logout, .topbar-user,
   [data-add-ingredient], [data-delete-ingredient],
   [data-dictate-target], .dictate-button { display: none !important; }
-  .workbench { padding: 0 !important; }
+  .workbench-body { padding: 0 !important; }
   .recipe-header { display: block !important; }
   .metric-row { display: flex !important; gap: 24px; margin: 12px 0; }
   table { min-width: 0 !important; width: 100% !important; }
