@@ -11,13 +11,36 @@ const RATING_OPTIONS = [
   { value: "goed", label: "Goed" },
   { value: "favoriet", label: "Favoriet" },
 ];
-const INGREDIENT_LIBRARY = [
-  "T65 label rouge", "Tarwebloem", "Patentbloem", "Tarwe volkoren", "Tarwe volkoren Molensteen",
-  "Roggebloem", "Roggemeel", "Speltbloem", "Spelt volkoren", "Emmer", "Eenkorn",
-  "Water", "Zout", "Gedroogde gist", "Verse gist", "Zuurdesem", "Levain",
-  "Basterdsuiker", "Honing", "Mout", "Broodpoeder", "Glutenpoeder",
-  "Boter", "Olijfolie", "Zonnebloemolie", "Melk", "Ei",
-  "Zonnebloempitten", "Pompoenpitten", "Sesamzaad", "Lijnzaad", "Havervlokken", "Rozijnen", "Krenten",
+const FLOUR_LIBRARY = [
+  "Tarwebloem — T45 / T55 / T65 / T80",
+  "Volkoren tarwemeel — T110 / T150",
+  "Roggemeel — T85 / T115 / T130 / T170",
+  "Speltmeel — T70 / T90 / T110 / T130",
+  "Patentbloem — T45 / T55",
+  "Typo 00",
+  "Maismeel",
+  "Havermeel",
+  "Boekweitmeel",
+  "Meergranenmeel",
+];
+const ADDITION_LIBRARY = [
+  "Water",
+  "Zout",
+  "Gist",
+  "Zuurdesemstarter",
+  "Olijfolie",
+  "Boter",
+  "Melk",
+  "Honing",
+  "Suiker",
+  "Moutpoeder / moutmeel",
+  "Zonnebloempitten",
+  "Pompoenpitten",
+  "Lijnzaad",
+  "Sesamzaad",
+  "Havervlokken",
+  "Volkoren granen of gekookte granen",
+  "Broodverbeteraar",
 ];
 const SEED_RECIPES = [
   {
@@ -255,17 +278,14 @@ function getCategoriesFromRecipes(recipes) {
     (a, b) => a.localeCompare(b, "nl", { sensitivity: "base" })
   );
 }
-function getIngredientLibrary() {
-  const names = new Set(INGREDIENT_LIBRARY);
-  state.recipes.forEach((recipe) => {
-    [...(recipe.flours || []), ...(recipe.additions || [])].forEach((item) => {
-      if (item.name?.trim()) names.add(item.name.trim());
-    });
-  });
-  return [...names].sort((a, b) => a.localeCompare(b, "nl", { sensitivity: "base" }));
+function renderDatalist(id, items) {
+  return `<datalist id="${id}">${items.map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist>`;
 }
-function renderIngredientDatalist() {
-  return `<datalist id="ingredient-library">${getIngredientLibrary().map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist>`;
+function renderIngredientDatalists() {
+  return [
+    renderDatalist("flour-library", FLOUR_LIBRARY),
+    renderDatalist("addition-library", ADDITION_LIBRARY),
+  ].join("");
 }
 function createBlankRecipe() {
   return {
@@ -701,7 +721,7 @@ function renderWorkbench() {
           </div>
 
           ${state.activeTab === "ingredients" ? `
-            ${renderIngredientDatalist()}
+            ${renderIngredientDatalists()}
             <div class="ingredients-section">
 
               <div class="ingredients-group">
@@ -724,7 +744,7 @@ function renderWorkbench() {
                     <tbody>
                       ${flours.map((ing) => `
                         <tr>
-                          <td><input class="material-input" list="ingredient-library" data-flour-index="${ing.index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. T65 label rouge" /></td>
+                          <td><input class="material-input" list="flour-library" data-flour-index="${ing.index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. T65 label rouge" /></td>
                           <td><label class="number-cell"><input data-flour-index="${ing.index}" data-kind="percentage" inputmode="decimal" min="0" max="100" step="0.1" type="number" value="${ing.percentage > 0 ? fmt(ing.percentage, 1) : ""}" placeholder="%" /><span>%</span></label></td>
                           <td><label class="number-cell amount-cell"><input data-flour-index="${ing.index}" data-kind="amount" inputmode="decimal" min="0" step="0.1" type="number" value="${ing.amount > 0 ? fmt(ing.amount, 1) : ""}" placeholder="g" /><span>g</span></label></td>
                           <td><button class="icon-action danger" data-delete-flour="${ing.index}" type="button">${icon("trash")}</button></td>
@@ -745,7 +765,7 @@ function renderWorkbench() {
                     <tbody>
                       ${additions.map((ing) => `
                         <tr>
-                          <td><input class="material-input" list="ingredient-library" data-addition-index="${ing.index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. water" /></td>
+                          <td><input class="material-input" list="addition-library" data-addition-index="${ing.index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. water" /></td>
                           <td><label class="number-cell"><input data-addition-index="${ing.index}" data-kind="percentage" inputmode="decimal" min="0" step="0.1" type="number" value="${ing.percentage > 0 ? fmt(ing.percentage, 1) : ""}" placeholder="%" /><span>%</span></label></td>
                           <td><label class="number-cell amount-cell"><input data-addition-index="${ing.index}" data-kind="amount" readonly tabindex="-1" type="number" value="${ing.amount > 0 ? fmt(ing.amount, 1) : ""}" placeholder="–" /><span>g</span></label></td>
                           <td><button class="icon-action danger" data-delete-addition="${ing.index}" type="button">${icon("trash")}</button></td>
