@@ -502,7 +502,7 @@ function renderMyRecipes() {
                         ${r.shared ? `<span class="badge badge-shared">${icon("share")}Gedeeld</span>` : ""}
                       </div>                    </div>
                     <span class="recipe-tile-cat">${esc(r.category || "Overig")}</span>
-                    <span class="recipe-tile-meta">${fmtW(r.flourTotal || 0)} bloem · ${fmtPct(r.ingredients.find((i) => i.name === "Water")?.percentage || 0)} hydratatie</span>
+                    <span class="recipe-tile-meta">${fmtW(r.flourTotal || 0)} bloem · ${fmtPct(getHydration(r))} hydratatie</span>
                     ${r.description ? `<p class="recipe-tile-desc">${esc(preview(r.description))}</p>` : ""}
                   </div>
                   <div class="recipe-tile-actions">
@@ -538,7 +538,7 @@ function renderLibrary() {
             <span class="recipe-tile-name">${esc(item.name)}</span>
           </div>
           <span class="recipe-tile-cat">${esc(item.category || "Overig")}</span>
-          <span class="recipe-tile-meta">${fmtW(item.flourTotal || 0)} bloem · ${fmtPct(item.ingredients.find((i) => i.name === "Water")?.percentage || 0)} hydratatie</span>
+          <span class="recipe-tile-meta">${fmtW(item.flourTotal || 0)} bloem · ${fmtPct(getHydration(item))} hydratatie</span>
           ${item.description ? `<p class="recipe-tile-desc">${esc(preview(item.description))}</p>` : ""}
           <div class="library-author">${avatarHtml}<span>${esc(naam)}</span></div>
         </div>
