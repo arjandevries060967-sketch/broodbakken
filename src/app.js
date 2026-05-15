@@ -822,12 +822,6 @@ function bindEvents() {
     }
   });
 
-  document.querySelector("[data-save-recipes]").addEventListener("click", async () => {
-    const recipe = getSelectedRecipe();
-    await saveRecipeToDB(recipe);
-    render();
-  });
-
   document.querySelector("[data-print-recipe]")?.addEventListener("click", () => {
     window.print();
   });
