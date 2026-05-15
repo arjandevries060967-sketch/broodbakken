@@ -235,3 +235,40 @@
   display: flex; align-items: center; gap: 6px;
   margin-top: 6px; color: var(--steen-grijs); font-size: 0.78rem; font-weight: 600;
 }
+
+/* ── Ingrediënten secties ────────────────────────────────────────────────── */
+.ingredients-section { display: grid; gap: 24px; }
+
+.ingredients-group {
+  border: 1px solid var(--lijn); border-radius: var(--radius);
+  padding: 14px; background: var(--meel);
+}
+
+.ingredients-group-title {
+  margin: 0 0 12px; font-size: 0.95rem; color: var(--oven-donker);
+  font-family: Fraunces, Georgia, serif; display: flex; align-items: center; gap: 10px;
+}
+
+.pct-total {
+  font-family: Inter, sans-serif; font-size: 0.8rem; font-weight: 900;
+  padding: 2px 8px; border-radius: 999px;
+  background: rgba(122,63,36,0.1); color: var(--oven-bruin);
+}
+
+.pct-hint {
+  font-family: Inter, sans-serif; font-size: 0.75rem; font-weight: 600;
+  color: var(--gist-groen); text-transform: uppercase;
+}
+
+/* ── Rijsmiddel ──────────────────────────────────────────────────────────── */
+.leavening-field { display: grid; gap: 6px; margin-top: 10px; }
+.leavening-field > span { color: var(--gist-groen); font-size: 0.78rem; font-weight: 900; text-transform: uppercase; }
+
+.leavening-options { display: flex; gap: 16px; }
+
+.leavening-option {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  font-size: 0.9rem; font-weight: 700; color: var(--oven-donker);
+}
+
+.leavening-option input[type="radio"] { accent-color: var(--oven-bruin); width: 16px; height: 16px; cursor: pointer; }
