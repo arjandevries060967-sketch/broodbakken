@@ -1,21 +1,22 @@
-// ─── Supabase configuratie ───────────────────────────────────────────────────
+// ─── Supabase ────────────────────────────────────────────────────────────────
 const SUPABASE_URL = "https://hyoicgalewuficlmancd.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5b2ljZ2FsZXd1ZmljbG1hbmNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NjgwNzIsImV4cCI6MjA5NDM0NDA3Mn0.8O7X9SObL2um55BiAuwQwQadQ8v4WmHkdqnQwEttLp4";
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ─── Seed recepten ────────────────────────────────────────────────────────────
-const seedRecipes = [
+// ─── Constanten ───────────────────────────────────────────────────────────────
+const CATEGORY_OPTIONS = ["Wit brood", "Bruin brood", "Volkoren", "Desem", "Zoet", "Pizza", "Overig"];
+const RATING_OPTIONS = [
+  { value: "mislukt", label: "Mislukt" },
+  { value: "ok", label: "Oké" },
+  { value: "goed", label: "Goed" },
+  { value: "favoriet", label: "Favoriet" },
+];
+const SEED_RECIPES = [
   {
-    name: "Wit",
-    flour_total: 400,
-    category: "Wit brood",
+    name: "Wit", flour_total: 400, category: "Wit brood",
     description: "Luchtig wit brood met T65 label rouge, boter en een zachte kruim.",
     method: "Meng de ingrediënten, kneed tot een soepel deeg, laat rijzen, vorm het brood en bak heet af.",
-    favorite: false,
-    shared: false,
-    last_used_at: 0,
-    target_dough_weight: 0,
-    loaf_count: 1,
+    favorite: false, shared: false, last_used_at: 0, target_dough_weight: 0, loaf_count: 1,
     ingredients: [
       { name: "T65 label rouge", percentage: 1, unit: "g" },
       { name: "Water", percentage: 0.65, unit: "g" },
@@ -24,21 +25,13 @@ const seedRecipes = [
       { name: "Boter", percentage: 0.015, unit: "g" },
       { name: "Zout", percentage: 0.018, unit: "g" },
     ],
-    notes: [
-      { date: "20 okt 2024", rating: "goed", text: "Deeg opgebold en laten rijzen in de oven op 30 graden. Lekker van smaak; volgende keer de eerste rijs iets korter houden." },
-    ],
+    notes: [{ date: "20 okt 2024", rating: "goed", text: "Deeg opgebold en laten rijzen in de oven op 30 graden. Lekker van smaak; volgende keer de eerste rijs iets korter houden." }],
   },
   {
-    name: "Bruin 35",
-    flour_total: 700,
-    category: "Bruin brood",
+    name: "Bruin 35", flour_total: 700, category: "Bruin brood",
     description: "Bruin brood met 35% volkorenmeel, extra broodpoeder en zonnebloemolie.",
     method: "Kneed het deeg goed door, laat rijzen tot dubbel volume, vorm en bak in blik of op steen.",
-    favorite: false,
-    shared: false,
-    last_used_at: 0,
-    target_dough_weight: 0,
-    loaf_count: 1,
+    favorite: false, shared: false, last_used_at: 0, target_dough_weight: 0, loaf_count: 1,
     ingredients: [
       { name: "T65 label rouge", percentage: 0.65, unit: "g" },
       { name: "Tarwe volkoren Molensteen", percentage: 0.35, unit: "g" },
@@ -53,41 +46,24 @@ const seedRecipes = [
   },
 ];
 
-const colorTokens = [
-  { name: "oven-bruin", value: "#7a3f24", usage: "primaire acties" },
-  { name: "meel", value: "#f6efe2", usage: "achtergrond" },
-  { name: "rogge", value: "#e4d0b2", usage: "panelen" },
-  { name: "gist-groen", value: "#6f7f4d", usage: "subtiele status" },
-  { name: "steen-grijs", value: "#514d46", usage: "tekst en lijnen" },
-  { name: "zout-wit", value: "#fffaf1", usage: "hoog contrast" },
-];
-
-const EMPTY_ROWS = 6;
-const CATEGORY_OPTIONS = ["Wit brood", "Bruin brood", "Volkoren", "Desem", "Zoet", "Pizza", "Overig"];
-const RATING_OPTIONS = [
-  { value: "mislukt", label: "Mislukt" },
-  { value: "ok", label: "Oké" },
-  { value: "goed", label: "Goed" },
-  { value: "favoriet", label: "Favoriet" },
-];
-
 // ─── State ────────────────────────────────────────────────────────────────────
 const state = {
   user: null,
+  loading: true,
+  authView: "login",
+  screen: "recipes",        // "recipes" | "library"
   recipes: [],
   selectedRecipeId: "",
-  saveMessage: "",
-  recipeDrawerOpen: false,
-  activeTab: "ingredients",
+  activeTab: "ingredients", // "ingredients" | "method" | "logbook"
   categories: [...CATEGORY_OPTIONS],
-  loading: true,
-  authView: "login", // "login" | "register"
-  library: [], // gedeelde recepten van andere gebruikers
+  saveMessage: "",
+  library: [],
   libraryLoading: false,
 };
 
 const root = document.querySelector("#root");
 let activeDictation = null;
+let autosaveTimer = null;
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 async function initAuth() {
@@ -108,6 +84,7 @@ async function initAuth() {
       state.user = null;
       state.recipes = [];
       state.selectedRecipeId = "";
+      state.library = [];
       render();
     }
   });
@@ -115,14 +92,12 @@ async function initAuth() {
 
 async function signIn(email, password) {
   const { error } = await db.auth.signInWithPassword({ email, password });
-  if (error) return error.message;
-  return null;
+  return error?.message || null;
 }
 
 async function signUp(email, password) {
   const { error } = await db.auth.signUp({ email, password });
-  if (error) return error.message;
-  return null;
+  return error?.message || null;
 }
 
 async function signOut() {
@@ -131,44 +106,16 @@ async function signOut() {
 
 // ─── Database ─────────────────────────────────────────────────────────────────
 async function loadRecipesFromDB() {
-  const { data, error } = await db
-    .from("recipes")
-    .select("*")
-    .order("created_at", { ascending: true });
-
-  if (error) {
-    state.saveMessage = "Fout bij laden recepten";
-    return;
-  }
-
-  if (data.length === 0) {
-    await seedInitialRecipes();
-    return;
-  }
-
+  const { data, error } = await db.from("recipes").select("*").order("created_at", { ascending: true });
+  if (error) { state.saveMessage = "Fout bij laden"; return; }
+  if (data.length === 0) { await seedInitialRecipes(); return; }
   state.recipes = data.map(dbToLocal);
   state.selectedRecipeId = state.recipes[0]?.id || "";
   state.categories = getCategoriesFromRecipes(state.recipes);
 }
 
-async function loadLibrary() {
-  state.libraryLoading = true;
-  const { data, error } = await db
-    .from("recipes")
-    .select("*")
-    .eq("shared", true)
-    .neq("user_id", state.user.id)
-    .order("updated_at", { ascending: false });
-
-  state.libraryLoading = false;
-  if (!error && data) {
-    state.library = data.map(dbToLocal);
-  }
-}
-
 async function seedInitialRecipes() {
-  const userId = state.user.id;
-  const toInsert = seedRecipes.map((r) => ({ ...r, user_id: userId }));
+  const toInsert = SEED_RECIPES.map((r) => ({ ...r, user_id: state.user.id }));
   const { data, error } = await db.from("recipes").insert(toInsert).select();
   if (!error && data) {
     state.recipes = data.map(dbToLocal);
@@ -177,43 +124,44 @@ async function seedInitialRecipes() {
   }
 }
 
-async function saveRecipeToDB(recipe) {
-  const dbRecipe = localToDB(recipe);
-  const { error } = await db
+async function loadLibrary() {
+  state.libraryLoading = true;
+  render();
+  const { data, error } = await db
     .from("recipes")
-    .upsert({ ...dbRecipe, user_id: state.user.id });
-
-  if (error) {
-    state.saveMessage = "Fout bij opslaan";
-  } else {
-    state.saveMessage = "Opgeslagen";
-  }
+    .select("*")
+    .eq("shared", true)
+    .order("updated_at", { ascending: false });
+  state.libraryLoading = false;
+  if (!error && data) state.library = data.map(dbToLocal);
+  render();
 }
 
-async function deleteRecipeFromDB(recipeId) {
-  await db.from("recipes").delete().eq("id", recipeId);
+async function saveRecipeToDB(recipe) {
+  const dbRecipe = localToDB(recipe);
+  const { error } = await db.from("recipes").upsert({ ...dbRecipe, user_id: state.user.id });
+  state.saveMessage = error ? "Fout bij opslaan" : "Opgeslagen";
+  const el = document.querySelector("[data-save-message]");
+  if (el) el.textContent = state.saveMessage;
+}
+
+async function deleteRecipeFromDB(id) {
+  await db.from("recipes").delete().eq("id", id);
 }
 
 async function insertRecipeToDB(recipe) {
   const dbRecipe = localToDB(recipe);
-  delete dbRecipe.id; // Laat Supabase een UUID genereren
-  const { data, error } = await db
-    .from("recipes")
-    .insert({ ...dbRecipe, user_id: state.user.id })
-    .select()
-    .single();
-
-  if (error) {
-    state.saveMessage = "Fout bij aanmaken";
-    return null;
-  }
+  delete dbRecipe.id;
+  const { data, error } = await db.from("recipes").insert({ ...dbRecipe, user_id: state.user.id }).select().single();
+  if (error) { state.saveMessage = "Fout bij aanmaken"; return null; }
   return dbToLocal(data);
 }
 
-// ─── Data conversie (DB ↔ lokaal) ────────────────────────────────────────────
+// ─── Conversie ────────────────────────────────────────────────────────────────
 function dbToLocal(row) {
-  const recipe = {
+  const r = {
     id: row.id,
+    userId: row.user_id,
     name: row.name,
     flourTotal: Number(row.flour_total) || 0,
     category: row.category || "Overig",
@@ -227,8 +175,9 @@ function dbToLocal(row) {
     ingredients: Array.isArray(row.ingredients) ? row.ingredients : [],
     notes: Array.isArray(row.notes) ? row.notes : [],
   };
-  ensureEditableRows(recipe);
-  return recipe;
+  r.ingredients = r.ingredients.filter((i) => i.name || i.percentage > 0);
+  r.notes.forEach((n) => { n.rating = n.rating || "ok"; });
+  return r;
 }
 
 function localToDB(recipe) {
@@ -250,74 +199,8 @@ function localToDB(recipe) {
 }
 
 // ─── Recipe helpers ───────────────────────────────────────────────────────────
-function ensureEditableRows(recipe) {
-  recipe.favorite = Boolean(recipe.favorite);
-  recipe.shared = Boolean(recipe.shared);
-  recipe.lastUsedAt = Number(recipe.lastUsedAt) || 0;
-  recipe.category = recipe.category || "Overig";
-  recipe.method = recipe.method || "";
-  recipe.targetDoughWeight = Number(recipe.targetDoughWeight) || 0;
-  recipe.loafCount = Math.max(1, Number(recipe.loafCount) || 1);
-  recipe.notes = Array.isArray(recipe.notes) ? recipe.notes : [];
-  recipe.notes.forEach((note) => { note.rating = note.rating || "ok"; });
-
-  // Verwijder lege rijen — maar bewaar rijen die als 'nieuw' gemarkeerd zijn
-  recipe.ingredients = recipe.ingredients.filter((i) => i.name || i.percentage > 0 || i._new);
-}
-
-function createBlankIngredient() {
-  return { name: "", percentage: 0, unit: "g", _new: true };
-}
-
-function createBlankRecipe() {
-  return {
-    id: `nieuw-${Date.now()}`,
-    name: `Nieuw recept`,
-    flourTotal: 500,
-    targetDoughWeight: 0,
-    loafCount: 1,
-    category: "Overig",
-    description: "Eigen broodrecept.",
-    favorite: false,
-    shared: false,
-    lastUsedAt: Date.now(),
-    ingredients: [
-      { name: "Bloem", percentage: 1, unit: "g" },
-    ],
-    notes: [],
-  };
-}
-
-function cloneRecipe(recipe) {
-  return {
-    ...structuredClone(recipe),
-    id: `nieuw-${Date.now()}`,
-    name: `${recipe.name} kopie`,
-    favorite: false,
-    shared: false,
-    lastUsedAt: Date.now(),
-  };
-}
-
 function getSelectedRecipe() {
   return state.recipes.find((r) => r.id === state.selectedRecipeId) || state.recipes[0];
-}
-
-function selectRecipe(recipeId) {
-  const recipe = state.recipes.find((r) => r.id === recipeId);
-  if (!recipe) return;
-  state.selectedRecipeId = recipe.id;
-  recipe.lastUsedAt = Date.now();
-  state.saveMessage = "";
-  render();
-  saveRecipeToDB(recipe);
-}
-
-function getRecentRecipes() {
-  const recent = [...state.recipes]
-    .sort((a, b) => (b.lastUsedAt || 0) - (a.lastUsedAt || 0))
-    .slice(0, 2);
-  return recent.some((r) => r.lastUsedAt) ? recent : state.recipes.slice(0, 2);
 }
 
 function getSortedRecipes() {
@@ -327,47 +210,78 @@ function getSortedRecipes() {
   });
 }
 
-function calculateIngredients(recipe, flourTotal) {
-  return recipe.ingredients.map((ingredient, index) => ({
-    ...ingredient,
-    index,
-    amount: ingredient.percentage * flourTotal,
-  }));
-}
-
-function getRecipeRatioTotal(recipe) {
-  return recipe.ingredients.reduce((sum, ingredient) => {
-    const hasValue = ingredient.name || ingredient.percentage > 0;
-    return hasValue ? sum + ingredient.percentage : sum;
-  }, 0);
-}
-
-function createBakeSnapshot(recipe, calculatedIngredients, totalDoughWeight) {
-  return {
-    flourTotal: recipe.flourTotal || 0,
-    doughWeight: Math.round(totalDoughWeight),
-    ingredients: calculatedIngredients
-      .filter((i) => i.name || i.percentage > 0)
-      .map((i) => ({
-        name: i.name || "Naamloos",
-        amount: Math.round(i.amount * 10) / 10,
-        unit: i.unit || "g",
-        percentage: Math.round(i.percentage * 1000) / 10,
-      })),
-  };
-}
-
 function getCategoriesFromRecipes(recipes) {
   return [...new Set([...CATEGORY_OPTIONS, ...recipes.map((r) => r.category).filter(Boolean)])].sort(
     (a, b) => a.localeCompare(b, "nl", { sensitivity: "base" })
   );
 }
 
+function createBlankRecipe() {
+  return {
+    name: "Nieuw recept", flourTotal: 500, targetDoughWeight: 0, loafCount: 1,
+    category: "Overig", description: "", favorite: false, shared: false,
+    lastUsedAt: Date.now(), ingredients: [{ name: "Bloem", percentage: 1, unit: "g" }], notes: [],
+  };
+}
+
+function cloneRecipe(recipe) {
+  return { ...structuredClone(recipe), name: `${recipe.name} kopie`, favorite: false, shared: false, lastUsedAt: Date.now() };
+}
+
+function calculateIngredients(recipe) {
+  const flourTotal = recipe.flourTotal || 0;
+  return recipe.ingredients.map((i, index) => ({ ...i, index, amount: i.percentage * flourTotal }));
+}
+
+function getRecipeRatioTotal(recipe) {
+  return recipe.ingredients.reduce((sum, i) => (i.name || i.percentage > 0) ? sum + i.percentage : sum, 0);
+}
+
+function getTotalDoughWeight(recipe) {
+  return calculateIngredients(recipe).reduce((sum, i) => (i.name || i.percentage > 0) ? sum + i.amount : sum, 0);
+}
+
+function createBakeSnapshot(recipe) {
+  const calc = calculateIngredients(recipe);
+  const total = getTotalDoughWeight(recipe);
+  return {
+    flourTotal: recipe.flourTotal || 0,
+    doughWeight: Math.round(total),
+    ingredients: calc.filter((i) => i.name || i.percentage > 0).map((i) => ({
+      name: i.name || "Naamloos",
+      amount: Math.round(i.amount * 10) / 10,
+      unit: i.unit || "g",
+      percentage: Math.round(i.percentage * 1000) / 10,
+    })),
+  };
+}
+
+function isOwnRecipe(recipe) {
+  return recipe.userId === state.user?.id;
+}
+
+// ─── Formatters ───────────────────────────────────────────────────────────────
+function fmt(v, d = 1) { return String(Number(v.toFixed(d))); }
+function fmtPct(v) { return `${fmt(v * 100, 1)}%`; }
+function fmtW(v) { return `${Math.round(v)} g`; }
+function esc(v) {
+  return String(v).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+function preview(v) { const t = String(v).trim(); return t.length > 72 ? `${t.slice(0, 72)}...` : t; }
+function ratingLabel(v) { return RATING_OPTIONS.find((r) => r.value === v)?.label || "Oké"; }
+function todayValue() {
+  const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+function fmtDate(s) {
+  const [y, m, d] = s.split("-").map(Number);
+  if (!y || !m || !d) return new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short", year: "numeric" }).format(new Date());
+  return new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short", year: "numeric" }).format(new Date(y, m - 1, d));
+}
+
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function icon(name) {
-  const paths = {
+  const p = {
     book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/>',
-    calendar: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
     chef: '<path d="M6.5 14.5h11"/><path d="M6.5 18.5h11"/><path d="M8 22h8"/><path d="M5.5 14.5A4.5 4.5 0 0 1 8 6a4 4 0 0 1 8 0 4.5 4.5 0 0 1 2.5 8.5"/><path d="M8 14.5V22"/><path d="M16 14.5V22"/>',
     flame: '<path d="M8.5 14.5A4.5 4.5 0 0 0 12 22a4.5 4.5 0 0 0 3.5-7.5c-1.7-1.9-2.2-3.7-1.5-6.5-2.8 1.4-5.4 3.5-5.5 6.5z"/><path d="M12 22c1.3-1.2 1.7-2.7 1.1-4.4-.4-1.1-1.3-2.1-1.1-3.6-1.5 1-2.8 2.6-2.4 4.5.2 1.2 1 2.5 2.4 3.5z"/>',
     grain: '<path d="M12 2v20"/><path d="M12 8c-2.8 0-5-1.8-5-4 2.8 0 5 1.8 5 4z"/><path d="M12 14c-2.8 0-5-1.8-5-4 2.8 0 5 1.8 5 4z"/><path d="M12 20c-2.8 0-5-1.8-5-4 2.8 0 5 1.8 5 4z"/><path d="M12 8c2.8 0 5-1.8 5-4-2.8 0-5 1.8-5 4z"/><path d="M12 14c2.8 0 5-1.8 5-4-2.8 0-5 1.8-5 4z"/><path d="M12 20c2.8 0 5-1.8 5-4-2.8 0-5 1.8-5 4z"/>',
@@ -380,73 +294,32 @@ function icon(name) {
     trash: '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v5"/><path d="M14 11v5"/>',
     share: '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>',
     logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+    copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
   };
-  return `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths[name]}</svg>`;
+  return `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p[name]}</svg>`;
 }
 
-// ─── Formatters ───────────────────────────────────────────────────────────────
-function formatNumber(value, decimals = 1) {
-  return String(Number(value.toFixed(decimals)));
-}
-function formatPercent(value) {
-  return `${formatNumber(value * 100, 1)}%`;
-}
-function formatWeight(value) {
-  return `${Math.round(value)} g`;
-}
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
-}
-function makePreview(value) {
-  const text = String(value).trim();
-  return text.length > 72 ? `${text.slice(0, 72)}...` : text;
-}
-function getRatingLabel(value) {
-  return RATING_OPTIONS.find((r) => r.value === value)?.label || "Oké";
-}
-function getTodayInputValue() {
-  const today = new Date();
-  const offset = today.getTimezoneOffset() * 60000;
-  return new Date(today.getTime() - offset).toISOString().slice(0, 10);
-}
-function formatDateForLog(inputValue) {
-  const [year, month, day] = inputValue.split("-").map(Number);
-  if (!year || !month || !day) {
-    return new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short", year: "numeric" }).format(new Date());
-  }
-  return new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short", year: "numeric" }).format(new Date(year, month - 1, day));
+// ─── Render helpers ───────────────────────────────────────────────────────────
+function renderCategoryOptions(selected) {
+  return state.categories.map((c) => `<option value="${esc(c)}" ${c === selected ? "selected" : ""}>${esc(c)}</option>`).join("");
 }
 
-// ─── Render functies ──────────────────────────────────────────────────────────
-function renderCategoryOptions(selectedCategory) {
-  return state.categories.map(
-    (cat) => `<option value="${escapeHtml(cat)}" ${cat === selectedCategory ? "selected" : ""}>${escapeHtml(cat)}</option>`
-  ).join("");
+function renderRatingOptions(selected) {
+  return RATING_OPTIONS.map((r) => `<option value="${r.value}" ${r.value === selected ? "selected" : ""}>${r.label}</option>`).join("");
 }
-function renderRatingOptions(selectedRating) {
-  return RATING_OPTIONS.map(
-    (r) => `<option value="${r.value}" ${r.value === selectedRating ? "selected" : ""}>${r.label}</option>`
-  ).join("");
-}
-function renderSnapshot(snapshot) {
-  if (!snapshot) return "";
+
+function renderSnapshot(snap) {
+  if (!snap) return "";
   return `
     <details class="snapshot">
-      <summary>Bakbeurt: ${formatWeight(snapshot.doughWeight || 0)} deeg · ${formatWeight(snapshot.flourTotal || 0)} bloem</summary>
+      <summary>Bakbeurt: ${fmtW(snap.doughWeight || 0)} deeg · ${fmtW(snap.flourTotal || 0)} bloem</summary>
       <div class="snapshot-grid">
-        ${(snapshot.ingredients || []).slice(0, 10).map(
-          (i) => `<span>${escapeHtml(i.name)}</span><strong>${formatNumber(Number(i.amount) || 0, 1)} ${escapeHtml(i.unit || "g")}</strong>`
-        ).join("")}
+        ${(snap.ingredients || []).slice(0, 10).map((i) => `<span>${esc(i.name)}</span><strong>${fmt(Number(i.amount) || 0, 1)} ${esc(i.unit || "g")}</strong>`).join("")}
       </div>
-    </details>
-  `;
+    </details>`;
 }
 
-// ─── Login scherm ─────────────────────────────────────────────────────────────
+// ─── Auth scherm ──────────────────────────────────────────────────────────────
 function renderAuthScreen() {
   const isLogin = state.authView === "login";
   root.innerHTML = `
@@ -454,37 +327,24 @@ function renderAuthScreen() {
       <div class="auth-card">
         <div class="auth-brand">
           <div class="brand-mark">${icon("chef")}</div>
-          <div>
-            <p class="eyebrow">Bakkerij dashboard</p>
-            <h1>Broodboek</h1>
-          </div>
+          <div><h1>Broodboek</h1></div>
         </div>
         <div class="auth-form-wrap">
           <h2>${isLogin ? "Inloggen" : "Account aanmaken"}</h2>
-          ${state.saveMessage ? `<p class="auth-error">${escapeHtml(state.saveMessage)}</p>` : ""}
+          ${state.saveMessage ? `<p class="auth-error">${esc(state.saveMessage)}</p>` : ""}
           <div class="auth-form">
-            <label>
-              <span>E-mailadres</span>
-              <input id="auth-email" type="email" placeholder="jouw@email.nl" autocomplete="email" />
-            </label>
-            <label>
-              <span>Wachtwoord</span>
-              <input id="auth-password" type="password" placeholder="minimaal 6 tekens" autocomplete="${isLogin ? "current-password" : "new-password"}" />
-            </label>
-            <button class="tool-button primary auth-submit" id="auth-submit">
-              ${isLogin ? "Inloggen" : "Account aanmaken"}
-            </button>
+            <label><span>E-mailadres</span><input id="auth-email" type="email" placeholder="jouw@email.nl" autocomplete="email" /></label>
+            <label><span>Wachtwoord</span><input id="auth-password" type="password" placeholder="minimaal 6 tekens" autocomplete="${isLogin ? "current-password" : "new-password"}" /></label>
+            <button class="tool-button primary auth-submit" id="auth-submit">${isLogin ? "Inloggen" : "Account aanmaken"}</button>
           </div>
           <p class="auth-switch">
             ${isLogin
               ? `Nog geen account? <button class="auth-link" id="auth-toggle">Aanmaken</button>`
-              : `Al een account? <button class="auth-link" id="auth-toggle">Inloggen</button>`
-            }
+              : `Al een account? <button class="auth-link" id="auth-toggle">Inloggen</button>`}
           </p>
         </div>
       </div>
-    </div>
-  `;
+    </div>`;
   bindAuthEvents();
 }
 
@@ -494,44 +354,243 @@ function bindAuthEvents() {
     state.saveMessage = "";
     renderAuthScreen();
   });
-
   document.getElementById("auth-submit").addEventListener("click", async () => {
     const email = document.getElementById("auth-email").value.trim();
     const password = document.getElementById("auth-password").value;
-    if (!email || !password) {
-      state.saveMessage = "Vul e-mailadres en wachtwoord in";
-      renderAuthScreen();
-      return;
-    }
+    if (!email || !password) { state.saveMessage = "Vul e-mailadres en wachtwoord in"; renderAuthScreen(); return; }
     const btn = document.getElementById("auth-submit");
-    btn.disabled = true;
-    btn.textContent = "Even wachten...";
-
+    btn.disabled = true; btn.textContent = "Even wachten...";
     let error;
     if (state.authView === "login") {
       error = await signIn(email, password);
     } else {
       error = await signUp(email, password);
-      if (!error) {
-        state.saveMessage = "Account aangemaakt. Controleer je e-mail om te bevestigen, log daarna in.";
-        state.authView = "login";
-        renderAuthScreen();
-        return;
-      }
+      if (!error) { state.saveMessage = "Account aangemaakt — controleer je e-mail en log daarna in."; state.authView = "login"; renderAuthScreen(); return; }
     }
+    if (error) { state.saveMessage = error; renderAuthScreen(); }
+  });
+  document.getElementById("auth-email").addEventListener("keydown", (e) => { if (e.key === "Enter") document.getElementById("auth-password").focus(); });
+  document.getElementById("auth-password").addEventListener("keydown", (e) => { if (e.key === "Enter") document.getElementById("auth-submit").click(); });
+}
 
-    if (error) {
-      state.saveMessage = error;
-      renderAuthScreen();
-    }
-  });
+// ─── Topbar ───────────────────────────────────────────────────────────────────
+function renderTopbar() {
+  return `
+    <header class="topbar">
+      <div class="brand-lockup">
+        <div class="brand-mark">${icon("chef")}</div>
+        <h1>Broodboek</h1>
+      </div>
+      <nav class="main-nav">
+        <button class="nav-btn ${state.screen === "recipes" ? "active" : ""}" data-screen="recipes">${icon("grain")}Mijn recepten</button>
+        <button class="nav-btn ${state.screen === "library" ? "active" : ""}" data-screen="library">${icon("book")}Bibliotheek</button>
+      </nav>
+      <div class="topbar-user">
+        <span class="user-email">${esc(state.user.email)}</span>
+        <button class="tool-button" id="btn-logout">${icon("logout")}Uitloggen</button>
+      </div>
+    </header>`;
+}
 
-  document.getElementById("auth-email").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") document.getElementById("auth-password").focus();
-  });
-  document.getElementById("auth-password").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") document.getElementById("auth-submit").click();
-  });
+// ─── Bibliotheek scherm ───────────────────────────────────────────────────────
+function renderLibrary() {
+  if (state.libraryLoading) {
+    return `<div class="library-screen"><p class="empty-state">Bibliotheek laden...</p></div>`;
+  }
+  if (state.library.length === 0) {
+    return `<div class="library-screen"><p class="empty-state">Nog geen gedeelde recepten. Zodra iemand een recept deelt verschijnt het hier.</p></div>`;
+  }
+
+  const own = state.library.filter((r) => r.userId === state.user.id);
+  const others = state.library.filter((r) => r.userId !== state.user.id);
+
+  const renderCard = (item, isOwn) => `
+    <article class="library-card">
+      <div class="library-card-info">
+        <div class="library-card-header">
+          <strong>${esc(item.name)}</strong>
+          ${isOwn ? `<span class="own-badge">Jouw recept</span>` : ""}
+        </div>
+        <small>${esc(item.category || "Overig")}</small>
+        <span>${fmtW(item.flourTotal || 0)} bloem · ${fmtPct(item.ingredients.find((i) => i.name === "Water")?.percentage || 0)} hydratatie</span>
+        ${item.description ? `<p>${esc(item.description)}</p>` : ""}
+      </div>
+      ${!isOwn ? `<button class="tool-button" data-copy-library="${item.id}" type="button">${icon("copy")}Kopiëren</button>` : `<button class="tool-button" data-goto-recipe="${item.id}" type="button">${icon("grain")}Bewerken</button>`}
+    </article>`;
+
+  return `
+    <div class="library-screen">
+      ${own.length > 0 ? `
+        <section class="library-section">
+          <h2 class="library-section-title">Jouw gedeelde recepten</h2>
+          <div class="library-grid">${own.map((r) => renderCard(r, true)).join("")}</div>
+        </section>` : ""}
+      ${others.length > 0 ? `
+        <section class="library-section">
+          <h2 class="library-section-title">Gedeeld door anderen</h2>
+          <div class="library-grid">${others.map((r) => renderCard(r, false)).join("")}</div>
+        </section>` : ""}
+      ${own.length === 0 && others.length === 0 ? `<p class="empty-state">Geen gedeelde recepten gevonden.</p>` : ""}
+    </div>`;
+}
+
+// ─── Recepten scherm ──────────────────────────────────────────────────────────
+function renderRecipes() {
+  const recipe = getSelectedRecipe();
+  if (!recipe) return `<div class="workbench"><p class="empty-state">Geen recepten gevonden.</p></div>`;
+
+  const calc = calculateIngredients(recipe);
+  const flourTotal = recipe.flourTotal || 0;
+  const hydration = calc.find((i) => i.name === "Water");
+  const totalDoughWeight = getTotalDoughWeight(recipe);
+  const loafWeight = Math.round(totalDoughWeight / (recipe.loafCount || 1));
+  const sortedRecipes = getSortedRecipes();
+
+  return `
+    <div class="recipe-screen">
+      <div class="recipe-picker-bar">
+        <select class="recipe-picker" data-recipe-picker>
+          ${sortedRecipes.map((r) => `<option value="${r.id}" ${r.id === recipe.id ? "selected" : ""}>${esc(r.name)}${r.shared ? " ↗" : ""}${r.favorite ? " ★" : ""}</option>`).join("")}
+        </select>
+        <button class="tool-button primary" data-new-recipe type="button">${icon("plus")}Nieuw</button>
+        <details class="more-options">
+          <summary>Meer opties</summary>
+          <div class="more-options-list">
+            <button class="tool-button wide" data-save-as type="button">${icon("save")}Opslaan als kopie</button>
+            <button class="tool-button wide ${recipe.shared ? "primary" : ""}" data-toggle-shared type="button">${icon("share")}${recipe.shared ? "Gedeeld — klik om privé te maken" : "Privé — klik om te delen"}</button>
+            <button class="tool-button wide" data-print-recipe type="button">${icon("note")}Printen</button>
+            <button class="tool-button wide" data-export-recipes type="button">${icon("save")}Export</button>
+            <label class="tool-button wide file-tool">${icon("plus")}Import<input data-import-recipes type="file" accept="application/json,.json" /></label>
+            <button class="tool-button danger wide" data-delete-recipe type="button">${icon("trash")}Verwijder recept</button>
+          </div>
+        </details>
+        <p class="save-message" data-save-message>${state.saveMessage}</p>
+      </div>
+
+      <div class="workbench">
+        <div class="recipe-header">
+          <div>
+            <label class="recipe-name-field">
+              <span>Receptnaam</span>
+              <input data-recipe-name type="text" value="${esc(recipe.name)}" />
+            </label>
+            <label class="category-field">
+              <span>Categorie</span>
+              <div>
+                <select data-recipe-category>${renderCategoryOptions(recipe.category)}</select>
+                <input data-new-category type="text" placeholder="Nieuwe categorie" />
+                <button class="tool-button" data-add-category type="button">${icon("plus")}Toevoegen</button>
+              </div>
+            </label>
+            <label class="description-field">
+              <span class="field-header">Korte omschrijving
+                <button class="dictate-button" data-dictate-target="[data-recipe-description]" type="button">${icon("mic")}Inspreken</button>
+              </span>
+              <textarea data-recipe-description rows="2" placeholder="Korte omschrijving van dit recept">${esc(recipe.description || "")}</textarea>
+              <small class="dictation-status" data-dictation-status></small>
+            </label>
+          </div>
+          <label class="flour-input">
+            <span>Bloem totaal</span>
+            <div>
+              <input data-flour-input inputmode="decimal" min="1" type="number" value="${flourTotal || ""}" />
+              <span>gram</span>
+            </div>
+          </label>
+        </div>
+
+        <div class="metric-row">
+          <div>${icon("scale")}<span>Deeggewicht</span><strong data-dough-weight>${fmtW(totalDoughWeight)}</strong></div>
+          <div>${icon("flame")}<span>Hydratatie</span><strong data-hydration>${fmtPct(hydration?.percentage || 0)}</strong></div>
+          <div>${icon("note")}<span>Per brood</span><strong data-loaf-weight>${fmtW(loafWeight)}</strong></div>
+        </div>
+
+        <details class="scale-panel-wrap">
+          <summary>Schalen</summary>
+          <section class="scale-panel">
+            <label>
+              <span>Gewenst totaal deeg</span>
+              <div><input data-target-dough inputmode="decimal" min="1" type="number" value="${Math.round(recipe.targetDoughWeight || totalDoughWeight)}" /><span>g</span></div>
+            </label>
+            <label>
+              <span>Aantal broden</span>
+              <input data-loaf-count inputmode="numeric" min="1" type="number" value="${recipe.loafCount || 1}" />
+            </label>
+            <p>Past bloem totaal aan op basis van het gewenste deeggewicht.</p>
+          </section>
+        </details>
+
+        <div class="tabbar" role="tablist">
+          <button class="${state.activeTab === "ingredients" ? "active" : ""}" data-tab="ingredients" type="button">Ingrediënten</button>
+          <button class="${state.activeTab === "method" ? "active" : ""}" data-tab="method" type="button">Werkwijze</button>
+          <button class="${state.activeTab === "logbook" ? "active" : ""}" data-tab="logbook" type="button">Logboek</button>
+        </div>
+
+        ${state.activeTab === "ingredients" ? `
+          <div class="table-wrap">
+            <table>
+              <caption>Ingrediënten</caption>
+              <thead><tr><th>Ingrediënt</th><th>Percentage</th><th>Hoeveelheid</th><th></th></tr></thead>
+              <tbody>
+                ${calc.map((ing, index) => `
+                  <tr>
+                    <td><input class="material-input" data-ingredient-index="${index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. water" /></td>
+                    <td><label class="number-cell"><input data-ingredient-index="${index}" data-kind="percentage" inputmode="decimal" min="0" step="0.1" type="number" value="${fmt(ing.percentage * 100, 3)}" /><span>%</span></label></td>
+                    <td><label class="number-cell amount-cell"><input data-ingredient-index="${index}" data-kind="amount" inputmode="decimal" min="0" step="1" type="number" value="${fmt(ing.amount, 1)}" /><span>g</span></label></td>
+                    <td><button class="icon-action danger" data-delete-ingredient="${index}" type="button">${icon("trash")}</button></td>
+                  </tr>`).join("")}
+              </tbody>
+            </table>
+            <button class="tool-button" data-add-ingredient type="button" style="margin-top:10px">${icon("plus")}Ingrediënt toevoegen</button>
+          </div>
+        ` : state.activeTab === "method" ? `
+          <section class="method-panel">
+            <label>
+              <span class="field-header">Werkwijze
+                <button class="dictate-button" data-dictate-target="[data-recipe-method]" type="button">${icon("mic")}Inspreken</button>
+              </span>
+              <textarea data-recipe-method rows="12" placeholder="Beschrijf hier stap voor stap hoe je dit brood maakt.">${esc(recipe.method || "")}</textarea>
+              <small class="dictation-status" data-dictation-status></small>
+            </label>
+          </section>
+        ` : `
+          <section class="logbook-workspace">
+            <form class="note-form note-form-wide" data-note-form>
+              <input data-note-date type="date" value="${todayValue()}" />
+              <select data-note-rating>${renderRatingOptions("goed")}</select>
+              <div class="dictation-field">
+                <button class="dictate-button" data-dictate-target="[data-note-text]" type="button">${icon("mic")}Inspreken</button>
+                <textarea data-note-text rows="4" placeholder="Nieuwe logboeknotitie"></textarea>
+                <small class="dictation-status" data-dictation-status></small>
+              </div>
+              <button class="tool-button primary" type="submit">${icon("plus")}Toevoegen</button>
+            </form>
+            <div class="note-list note-list-wide">
+              ${recipe.notes.length
+                ? recipe.notes.map((note, index) => `
+                  <details class="note" ${index === 0 ? "open" : ""}>
+                    <summary>
+                      <time>${esc(note.date)}</time>
+                      <strong class="rating-badge ${esc(note.rating || "ok")}">${ratingLabel(note.rating)}</strong>
+                      <span>${esc(preview(note.text))}</span>
+                    </summary>
+                    <div class="note-body">
+                      <div>
+                        <p>${esc(note.text)}</p>
+                        ${renderSnapshot(note.snapshot)}
+                      </div>
+                      <div class="note-actions">
+                        <select data-note-rating-update="${index}">${renderRatingOptions(note.rating || "ok")}</select>
+                        <button class="icon-action danger" data-delete-note="${index}" type="button">${icon("trash")}</button>
+                      </div>
+                    </div>
+                  </details>`).join("")
+                : `<p class="empty-state">Nog geen logboekitems voor dit recept.</p>`}
+            </div>
+          </section>
+        `}
+      </div>
+    </div>`;
 }
 
 // ─── Hoofdrender ──────────────────────────────────────────────────────────────
@@ -540,330 +599,134 @@ function render() {
     root.innerHTML = `<div class="auth-shell"><p style="color:var(--gist-groen);font-weight:700">Laden...</p></div>`;
     return;
   }
-  if (!state.user) {
-    renderAuthScreen();
-    return;
-  }
-
-  const recipe = getSelectedRecipe();
-  if (!recipe) {
-    root.innerHTML = `<div class="auth-shell"><p>Geen recepten gevonden.</p></div>`;
-    return;
-  }
-
-  ensureEditableRows(recipe);
-  const flourTotal = recipe.flourTotal || 0;
-  const calculatedIngredients = calculateIngredients(recipe, flourTotal);
-  const hydration = calculatedIngredients.find((i) => i.name === "Water");
-  const recentRecipes = getRecentRecipes();
-  const sortedRecipes = getSortedRecipes();
-  const ratioTotal = getRecipeRatioTotal(recipe);
-  const totalDoughWeight = calculatedIngredients.reduce((sum, i) => {
-    return (i.name || i.percentage > 0) ? sum + i.amount : sum;
-  }, 0);
-  if (!recipe.targetDoughWeight) recipe.targetDoughWeight = Math.round(totalDoughWeight);
-  const loafWeight = recipe.loafCount > 0 ? Math.round(totalDoughWeight / recipe.loafCount) : Math.round(totalDoughWeight);
+  if (!state.user) { renderAuthScreen(); return; }
 
   root.innerHTML = `
     <main class="app-shell">
-      <section class="topbar" aria-label="Broodboek overzicht">
-        <div class="brand-lockup">
-          <div class="brand-mark">${icon("chef")}</div>
-          <div>
-            <h1>Broodboek</h1>
-          </div>
-        </div>
-        <div class="topbar-user">
-          <span class="user-email">${escapeHtml(state.user.email)}</span>
-          <button class="tool-button" id="btn-logout">${icon("logout")}Uitloggen</button>
-        </div>
-      </section>
-
-      <section class="dashboard-grid">
-        <aside class="recipe-panel" aria-label="Recepten">
-          <div class="panel-heading">${icon("book")}<h2>Recepten</h2></div>
-          <div class="sidebar-actions">
-            <button class="tool-button primary" data-new-recipe type="button">${icon("plus")}Nieuw recept</button>
-          </div>
-          <details class="more-options">
-            <summary>Meer opties</summary>
-            <div class="more-options-list">
-              <button class="tool-button wide" data-save-as type="button">${icon("save")}Opslaan als</button>
-              <button class="tool-button wide ${recipe.shared ? "primary" : ""}" data-toggle-shared type="button">${icon("share")}${recipe.shared ? "Gedeeld (klik om privé)" : "Privé (klik om te delen)"}</button>
-              <button class="tool-button wide" data-print-recipe type="button">${icon("note")}Recept printen</button>
-              <button class="tool-button wide" data-export-recipes type="button">${icon("save")}Export</button>
-              <label class="tool-button wide file-tool">${icon("plus")}Import<input data-import-recipes type="file" accept="application/json,.json" /></label>
-              <button class="tool-button danger wide" data-delete-recipe type="button">${icon("trash")}Verwijder recept</button>
-            </div>
-          </details>
-          <p class="save-message" data-save-message>${state.saveMessage}</p>
-
-          <section class="recent-recipes" aria-label="Laatste gebruikte recepten">
-            <p class="sidebar-label">Laatste gebruikt</p>
-            <div class="recent-grid">
-              ${recentRecipes.map((item) => `
-                <article class="recipe-card recent-card ${item.id === recipe.id ? "active" : ""}" data-select-recipe="${item.id}" role="button" tabindex="0">
-                  <button class="star-button ${item.favorite ? "active" : ""}" data-star-recipe="${item.id}" type="button" aria-label="${item.favorite ? "Ster verwijderen" : "Recept met ster aanmerken"}">${icon("star")}</button>
-                  <div class="recipe-card-content">
-                    <span data-recipe-name-label="${item.id}">${escapeHtml(item.name)}</span>
-                    <small>${escapeHtml(item.category || "Overig")}${item.shared ? " · Gedeeld" : ""}</small>
-                    <strong data-recipe-flour="${item.id}">${formatWeight(item.flourTotal || 0)} bloem</strong>
-                  </div>
-                </article>
-              `).join("")}
-            </div>
-          </section>
-
-          <details class="recipe-drawer" data-recipe-drawer ${state.recipeDrawerOpen ? "open" : ""}>
-            <summary>Alle recepten</summary>
-            <div class="recipe-list">
-              ${sortedRecipes.map((item) => `
-                <article class="recipe-card list-card ${item.id === recipe.id ? "active" : ""}" data-select-recipe="${item.id}" role="button" tabindex="0">
-                  <button class="star-button ${item.favorite ? "active" : ""}" data-star-recipe="${item.id}" type="button" aria-label="${item.favorite ? "Ster verwijderen" : "Recept met ster aanmerken"}">${icon("star")}</button>
-                  <div class="recipe-card-content">
-                    <span data-recipe-name-label="${item.id}">${escapeHtml(item.name)}</span>
-                    <small>${escapeHtml(item.category || "Overig")}${item.shared ? " · Gedeeld" : ""}</small>
-                    <strong data-recipe-flour="${item.id}">${formatWeight(item.flourTotal || 0)} bloem</strong>
-                  </div>
-                </article>
-              `).join("")}
-            </div>
-          </details>
-        </aside>
-
-        <section class="workbench" aria-label="Recept calculator">
-          <div class="recipe-header">
-            <div>
-              <label class="recipe-name-field">
-                <span>Receptnaam</span>
-                <input data-recipe-name type="text" value="${escapeHtml(recipe.name)}" />
-              </label>
-              <label class="category-field">
-                <span>Categorie</span>
-                <div>
-                  <select data-recipe-category>${renderCategoryOptions(recipe.category)}</select>
-                  <input data-new-category type="text" placeholder="Nieuwe categorie" />
-                  <button class="tool-button" data-add-category type="button">${icon("plus")}Toevoegen</button>
-                </div>
-              </label>
-              <label class="description-field">
-                <span class="field-header">Korte omschrijving
-                  <button class="dictate-button" data-dictate-target="[data-recipe-description]" type="button">${icon("mic")}Inspreken</button>
-                </span>
-                <textarea data-recipe-description rows="2" placeholder="Korte omschrijving van dit recept">${escapeHtml(recipe.description || "")}</textarea>
-                <small class="dictation-status" data-dictation-status></small>
-              </label>
-            </div>
-            <label class="flour-input">
-              <span>Bloem totaal</span>
-              <div>
-                <input data-flour-input inputmode="decimal" min="1" type="number" value="${flourTotal || ""}" />
-                <span>gram</span>
-              </div>
-            </label>
-          </div>
-
-          <div class="metric-row" aria-label="Kerngetallen">
-            <div>${icon("scale")}<span>Deeggewicht</span><strong data-dough-weight>${formatWeight(totalDoughWeight)}</strong></div>
-            <div>${icon("flame")}<span>Hydratatie</span><strong data-hydration>${formatPercent(hydration?.percentage || 0)}</strong></div>
-            <div>${icon("note")}<span>Per brood</span><strong data-loaf-weight>${formatWeight(loafWeight)}</strong></div>
-          </div>
-
-          <details class="scale-panel-wrap">
-            <summary>Schalen</summary>
-            <section class="scale-panel" aria-label="Deeg schalen">
-              <label>
-                <span>Gewenst totaal deeg</span>
-                <div>
-                  <input data-target-dough inputmode="decimal" min="1" type="number" value="${Math.round(recipe.targetDoughWeight || totalDoughWeight)}" />
-                  <span>g</span>
-                </div>
-              </label>
-              <label>
-                <span>Aantal broden</span>
-                <input data-loaf-count inputmode="numeric" min="1" type="number" value="${recipe.loafCount || 1}" />
-              </label>
-              <p>Past bloem totaal aan op basis van het gewenste deeggewicht.</p>
-            </section>
-          </details>
-
-          <div class="tabbar" role="tablist" aria-label="Recept onderdelen">
-            <button class="${state.activeTab === "ingredients" ? "active" : ""}" data-tab="ingredients" type="button">Ingrediënten</button>
-            <button class="${state.activeTab === "method" ? "active" : ""}" data-tab="method" type="button">Werkwijze</button>
-            <button class="${state.activeTab === "logbook" ? "active" : ""}" data-tab="logbook" type="button">Logboek</button>
-            <button class="${state.activeTab === "library" ? "active" : ""}" data-tab="library" type="button">Bibliotheek</button>
-          </div>
-
-          ${state.activeTab === "ingredients" ? `
-            <div class="table-wrap">
-              <table>
-                <caption>Ingrediënten</caption>
-                <thead>
-                  <tr>
-                    <th>Gebruikt materiaal</th>
-                    <th>Percentage</th>
-                    <th>Hoeveelheid</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${calculatedIngredients.map((ingredient, index) => `
-                    <tr>
-                      <td><input class="material-input" aria-label="Gebruikt materiaal" data-ingredient-index="${index}" data-kind="name" type="text" value="${escapeHtml(ingredient.name)}" placeholder="bijv. water" /></td>
-                      <td>
-                        <label class="number-cell">
-                          <input aria-label="${ingredient.name} percentage" data-ingredient-index="${index}" data-kind="percentage" inputmode="decimal" min="0" step="0.1" type="number" value="${formatNumber(ingredient.percentage * 100, 3)}" />
-                          <span>%</span>
-                        </label>
-                      </td>
-                      <td>
-                        <label class="number-cell amount-cell">
-                          <input aria-label="${ingredient.name} gram" data-ingredient-index="${index}" data-kind="amount" inputmode="decimal" min="0" step="1" type="number" value="${formatNumber(ingredient.amount, 1)}" />
-                          <span>g</span>
-                        </label>
-                      </td>
-                      <td><button class="icon-action danger" data-delete-ingredient="${index}" type="button" aria-label="Ingrediënt verwijderen">${icon("trash")}</button></td>
-                    </tr>
-                  `).join("")}
-                </tbody>
-              </table>
-              <button class="tool-button" data-add-ingredient type="button" style="margin-top:10px">${icon("plus")}Ingrediënt toevoegen</button>
-            </div>
-          ` : state.activeTab === "method" ? `
-            <section class="method-panel" aria-label="Werkwijze">
-              <label>
-                <span class="field-header">
-                  Werkwijze
-                  <button class="dictate-button" data-dictate-target="[data-recipe-method]" type="button">${icon("mic")}Inspreken</button>
-                </span>
-                <textarea data-recipe-method rows="12" placeholder="Beschrijf hier stap voor stap hoe je dit brood maakt.">${escapeHtml(recipe.method || "")}</textarea>
-                <small class="dictation-status" data-dictation-status></small>
-              </label>
-            </section>
-          ` : state.activeTab === "logbook" ? `
-            <section class="logbook-workspace" aria-label="Volledig baklogboek">
-              <form class="note-form note-form-wide" data-note-form>
-                <input data-note-date type="date" aria-label="Datum" value="${getTodayInputValue()}" />
-                <select data-note-rating aria-label="Beoordeling">${renderRatingOptions("goed")}</select>
-                <div class="dictation-field">
-                  <button class="dictate-button" data-dictate-target="[data-note-text]" type="button">${icon("mic")}Inspreken</button>
-                  <textarea data-note-text rows="4" placeholder="Nieuwe logboeknotitie" aria-label="Nieuwe logboeknotitie"></textarea>
-                  <small class="dictation-status" data-dictation-status></small>
-                </div>
-                <button class="tool-button primary" type="submit">${icon("plus")}Toevoegen</button>
-              </form>
-              <div class="note-list note-list-wide">
-                ${recipe.notes.length
-                  ? recipe.notes.map((note, index) => `
-                    <details class="note" ${index === 0 ? "open" : ""}>
-                      <summary>
-                        <time>${escapeHtml(note.date)}</time>
-                        <strong class="rating-badge ${escapeHtml(note.rating || "ok")}">${getRatingLabel(note.rating)}</strong>
-                        <span>${escapeHtml(makePreview(note.text))}</span>
-                      </summary>
-                      <div class="note-body">
-                        <div>
-                          <p>${escapeHtml(note.text)}</p>
-                          ${renderSnapshot(note.snapshot)}
-                        </div>
-                        <div class="note-actions">
-                          <select data-note-rating-update="${index}" aria-label="Beoordeling aanpassen">${renderRatingOptions(note.rating || "ok")}</select>
-                          <button class="icon-action danger" data-delete-note="${index}" type="button" aria-label="Logboekitem verwijderen">${icon("trash")}</button>
-                        </div>
-                      </div>
-                    </details>
-                  `).join("")
-                  : `<p class="empty-state">Nog geen logboekitems voor dit recept.</p>`
-                }
-              </div>
-            </section>
-          ` : state.activeTab === "library" ? `
-            <section class="library-workspace" aria-label="Gedeelde recepten bibliotheek">
-              ${state.libraryLoading ? `<p class="empty-state">Bibliotheek laden...</p>` :
-                state.library.length === 0 ? `<p class="empty-state">Nog geen gedeelde recepten van andere gebruikers. Zodra iemand een recept deelt verschijnt het hier.</p>` :
-                `<div class="library-grid">
-                  ${state.library.map((item) => `
-                    <article class="library-card">
-                      <div class="library-card-info">
-                        <strong>${escapeHtml(item.name)}</strong>
-                        <small>${escapeHtml(item.category || "Overig")}</small>
-                        <span>${formatWeight(item.flourTotal || 0)} bloem · ${formatPercent(item.ingredients.find(i => i.name === "Water")?.percentage || 0)} hydratatie</span>
-                        ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
-                      </div>
-                      <button class="tool-button" data-copy-library="${item.id}" type="button">${icon("plus")}Kopiëren naar mijn recepten</button>
-                    </article>
-                  `).join("")}
-                </div>`
-              }
-            </section>
-          ` : ""}
-        </section>
-      </section>
-
-    </main>
-  `;
+      ${renderTopbar()}
+      ${state.screen === "library" ? renderLibrary() : renderRecipes()}
+    </main>`;
 
   bindEvents();
 }
 
+// ─── Autosave ─────────────────────────────────────────────────────────────────
+function scheduleAutosave() {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(async () => {
+    const recipe = getSelectedRecipe();
+    if (recipe) await saveRecipeToDB(recipe);
+  }, 2000);
+}
+
+function markUnsaved() {
+  state.saveMessage = "Niet opgeslagen";
+  const el = document.querySelector("[data-save-message]");
+  if (el) el.textContent = state.saveMessage;
+  scheduleAutosave();
+}
+
 // ─── Events ───────────────────────────────────────────────────────────────────
 function bindEvents() {
+  // Navigatie
   document.getElementById("btn-logout")?.addEventListener("click", signOut);
+  document.querySelectorAll("[data-screen]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      state.screen = btn.dataset.screen;
+      if (state.screen === "library") {
+        await loadLibrary();
+      } else {
+        render();
+      }
+    });
+  });
 
-  document.querySelector("[data-new-recipe]").addEventListener("click", async () => {
-    const blank = createBlankRecipe();
-    const saved = await insertRecipeToDB(blank);
+  if (state.screen === "library") {
+    // Bibliotheek events
+    document.querySelectorAll("[data-copy-library]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const source = state.library.find((r) => r.id === btn.dataset.copyLibrary);
+        if (!source) return;
+        const copy = cloneRecipe(source);
+        const saved = await insertRecipeToDB(copy);
+        if (saved) {
+          state.recipes.push(saved);
+          state.selectedRecipeId = saved.id;
+          state.categories = getCategoriesFromRecipes(state.recipes);
+          state.screen = "recipes";
+          state.activeTab = "ingredients";
+          state.saveMessage = `"${saved.name}" toegevoegd aan jouw recepten`;
+          render();
+        }
+      });
+    });
+    document.querySelectorAll("[data-goto-recipe]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.selectedRecipeId = btn.dataset.gotoRecipe;
+        state.screen = "recipes";
+        render();
+      });
+    });
+    return; // Geen recepten events op bibliotheekscherm
+  }
+
+  // Recepten scherm events
+  document.querySelector("[data-recipe-picker]")?.addEventListener("change", (e) => {
+    state.selectedRecipeId = e.target.value;
+    state.saveMessage = "";
+    state.activeTab = "ingredients";
+    const recipe = getSelectedRecipe();
+    recipe.lastUsedAt = Date.now();
+    render();
+    saveRecipeToDB(recipe);
+  });
+
+  document.querySelector("[data-new-recipe]")?.addEventListener("click", async () => {
+    const saved = await insertRecipeToDB(createBlankRecipe());
     if (saved) {
       state.recipes.push(saved);
       state.selectedRecipeId = saved.id;
       state.categories = getCategoriesFromRecipes(state.recipes);
-      renderAndRestoreFocus("[data-recipe-name]");
+      state.activeTab = "ingredients";
+      render();
+      document.querySelector("[data-recipe-name]")?.focus();
     }
   });
 
-  document.querySelector("[data-print-recipe]")?.addEventListener("click", () => {
-    window.print();
-  });
-
-  document.querySelector("[data-save-as]").addEventListener("click", async () => {
-    const copy = cloneRecipe(getSelectedRecipe());
-    const saved = await insertRecipeToDB(copy);
+  document.querySelector("[data-save-as]")?.addEventListener("click", async () => {
+    const saved = await insertRecipeToDB(cloneRecipe(getSelectedRecipe()));
     if (saved) {
       state.recipes.push(saved);
       state.selectedRecipeId = saved.id;
-      renderAndRestoreFocus("[data-recipe-name]");
+      render();
     }
   });
 
-  document.querySelector("[data-toggle-shared]").addEventListener("click", async () => {
+  document.querySelector("[data-toggle-shared]")?.addEventListener("click", async () => {
     const recipe = getSelectedRecipe();
     recipe.shared = !recipe.shared;
     await saveRecipeToDB(recipe);
     render();
   });
 
-  document.querySelector("[data-export-recipes]").addEventListener("click", () => {
-    const data = { exportedAt: new Date().toISOString(), app: "Broodboek", recipes: state.recipes };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  document.querySelector("[data-print-recipe]")?.addEventListener("click", () => window.print());
+
+  document.querySelector("[data-export-recipes]")?.addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), app: "Broodboek", recipes: state.recipes }, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `broodboek-${getTodayInputValue()}.json`;
-    link.click();
+    const a = document.createElement("a"); a.href = url; a.download = `broodboek-${todayValue()}.json`; a.click();
     URL.revokeObjectURL(url);
   });
 
-  document.querySelector("[data-import-recipes]").addEventListener("change", async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  document.querySelector("[data-import-recipes]")?.addEventListener("change", async (e) => {
+    const file = e.target.files?.[0]; if (!file) return;
     const reader = new FileReader();
     reader.addEventListener("load", async () => {
       try {
-        const imported = JSON.parse(String(reader.result));
-        const recipes = Array.isArray(imported) ? imported : imported.recipes;
-        if (!Array.isArray(recipes) || recipes.length === 0) throw new Error("Geen recepten gevonden");
+        const imp = JSON.parse(String(reader.result));
+        const recipes = Array.isArray(imp) ? imp : imp.recipes;
+        if (!Array.isArray(recipes) || recipes.length === 0) throw new Error();
         for (const r of recipes) {
-          ensureEditableRows(r);
           const saved = await insertRecipeToDB(r);
           if (saved) state.recipes.push(saved);
         }
@@ -871,79 +734,14 @@ function bindEvents() {
         state.categories = getCategoriesFromRecipes(state.recipes);
         state.saveMessage = "Import opgeslagen";
         render();
-      } catch {
-        state.saveMessage = "Import mislukt";
-        render();
-      }
+      } catch { state.saveMessage = "Import mislukt"; render(); }
     });
     reader.readAsText(file);
   });
 
-  document.querySelector("[data-recipe-drawer]").addEventListener("toggle", (event) => {
-    state.recipeDrawerOpen = event.target.open;
-  });
-
-  document.querySelectorAll("[data-tab]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      state.activeTab = button.dataset.tab;
-      if (state.activeTab === "library" && state.library.length === 0) {
-        state.libraryLoading = true;
-        render();
-        await loadLibrary();
-      }
-      render();
-    });
-  });
-
-  document.querySelectorAll("[data-copy-library]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const sourceId = button.dataset.copyLibrary;
-      const source = state.library.find((r) => r.id === sourceId);
-      if (!source) return;
-      const copy = cloneRecipe(source);
-      copy.shared = false;
-      const saved = await insertRecipeToDB(copy);
-      if (saved) {
-        state.recipes.push(saved);
-        state.selectedRecipeId = saved.id;
-        state.categories = getCategoriesFromRecipes(state.recipes);
-        state.activeTab = "ingredients";
-        state.saveMessage = `"${saved.name}" toegevoegd aan jouw recepten`;
-        render();
-      }
-    });
-  });
-
-  document.querySelectorAll("[data-dictate-target]").forEach((button) => {
-    button.addEventListener("click", () => startDictation(button));
-  });
-
-  document.querySelector("[data-add-ingredient]")?.addEventListener("click", () => {
+  document.querySelector("[data-delete-recipe]")?.addEventListener("click", async () => {
     const recipe = getSelectedRecipe();
-    recipe.ingredients.push(createBlankIngredient());
-    render();
-    const inputs = document.querySelectorAll("[data-kind='name']");
-    inputs[inputs.length - 1]?.focus();
-  });
-
-  document.querySelectorAll("[data-delete-ingredient]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const recipe = getSelectedRecipe();
-      const index = Number(button.dataset.deleteIngredient);
-      if (recipe.ingredients.length <= 1) return;
-      recipe.ingredients.splice(index, 1);
-      markUnsaved();
-      render();
-    });
-  });
-
-  document.querySelector("[data-delete-recipe]").addEventListener("click", async () => {
-    const recipe = getSelectedRecipe();
-    if (state.recipes.length <= 1) {
-      state.saveMessage = "Laatste recept kan niet weg";
-      render();
-      return;
-    }
+    if (state.recipes.length <= 1) { state.saveMessage = "Laatste recept kan niet weg"; render(); return; }
     if (!confirm(`Recept "${recipe.name}" verwijderen?`)) return;
     await deleteRecipeFromDB(recipe.id);
     state.recipes = state.recipes.filter((r) => r.id !== recipe.id);
@@ -951,257 +749,195 @@ function bindEvents() {
     render();
   });
 
-  document.querySelector("[data-note-form]")?.addEventListener("submit", async (event) => {
-    event.preventDefault();
+  document.querySelectorAll("[data-tab]").forEach((btn) => {
+    btn.addEventListener("click", () => { state.activeTab = btn.dataset.tab; render(); });
+  });
+
+  document.querySelector("[data-recipe-name]")?.addEventListener("input", (e) => {
     const recipe = getSelectedRecipe();
-    const dateInput = document.querySelector("[data-note-date]");
-    const ratingInput = document.querySelector("[data-note-rating]");
-    const textInput = document.querySelector("[data-note-text]");
-    const text = textInput.value.trim();
-    if (!text) { textInput.focus(); return; }
-    const calculatedIngredients = calculateIngredients(recipe, recipe.flourTotal || 0);
-    const totalDoughWeight = calculatedIngredients.reduce((sum, i) => (i.name || i.percentage > 0) ? sum + i.amount : sum, 0);
-    recipe.notes.unshift({
-      date: formatDateForLog(dateInput.value || getTodayInputValue()),
-      rating: ratingInput.value || "ok",
-      snapshot: createBakeSnapshot(recipe, calculatedIngredients, totalDoughWeight),
-      text,
-    });
-    dateInput.value = getTodayInputValue();
-    textInput.value = "";
-    await saveRecipeToDB(recipe);
-    renderAndRestoreFocus("[data-note-text]");
-  });
-
-  document.querySelectorAll("[data-select-recipe]").forEach((button) => {
-    button.addEventListener("click", () => selectRecipe(button.dataset.selectRecipe));
-    button.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectRecipe(button.dataset.selectRecipe); }
-    });
-  });
-
-  document.querySelectorAll("[data-star-recipe]").forEach((button) => {
-    button.addEventListener("click", async (event) => {
-      event.stopPropagation();
-      const recipe = state.recipes.find((r) => r.id === button.dataset.starRecipe);
-      if (!recipe) return;
-      recipe.favorite = !recipe.favorite;
-      render();
-      await saveRecipeToDB(recipe);
-    });
-  });
-
-  document.querySelectorAll("[data-delete-note]").forEach((button) => {
-    button.addEventListener("click", async (event) => {
-      event.stopPropagation();
-      const recipe = getSelectedRecipe();
-      const noteIndex = Number(button.dataset.deleteNote);
-      if (!Number.isInteger(noteIndex) || !recipe.notes[noteIndex]) return;
-      if (!confirm("Logboekitem verwijderen?")) return;
-      recipe.notes.splice(noteIndex, 1);
-      await saveRecipeToDB(recipe);
-      render();
-    });
-  });
-
-  document.querySelectorAll("[data-note-rating-update]").forEach((select) => {
-    select.addEventListener("change", async () => {
-      const recipe = getSelectedRecipe();
-      const noteIndex = Number(select.dataset.noteRatingUpdate);
-      if (!Number.isInteger(noteIndex) || !recipe.notes[noteIndex]) return;
-      recipe.notes[noteIndex].rating = select.value;
-      render();
-      await saveRecipeToDB(recipe);
-    });
-  });
-
-  document.querySelector("[data-recipe-name]").addEventListener("input", (event) => {
-    const recipe = getSelectedRecipe();
-    recipe.name = event.target.value || "Naamloos recept";
-    document.querySelectorAll(`[data-recipe-name-label="${recipe.id}"]`).forEach((label) => {
-      label.textContent = recipe.name;
-    });
+    recipe.name = e.target.value || "Naamloos";
+    document.querySelector(`[data-recipe-picker] option[value="${recipe.id}"]`)?.setAttribute("label", recipe.name);
     markUnsaved();
   });
 
-  document.querySelector("[data-recipe-category]").addEventListener("change", (event) => {
-    const recipe = getSelectedRecipe();
-    recipe.category = event.target.value;
-    markUnsaved();
+  document.querySelector("[data-recipe-category]")?.addEventListener("change", (e) => {
+    getSelectedRecipe().category = e.target.value; markUnsaved();
   });
 
-  document.querySelector("[data-recipe-description]").addEventListener("input", (event) => {
-    const recipe = getSelectedRecipe();
-    recipe.description = event.target.value;
-    markUnsaved();
+  document.querySelector("[data-recipe-description]")?.addEventListener("input", (e) => {
+    getSelectedRecipe().description = e.target.value; markUnsaved();
   });
 
-  document.querySelector("[data-recipe-method]")?.addEventListener("input", (event) => {
-    const recipe = getSelectedRecipe();
-    recipe.method = event.target.value;
-    markUnsaved();
+  document.querySelector("[data-recipe-method]")?.addEventListener("input", (e) => {
+    getSelectedRecipe().method = e.target.value; markUnsaved();
   });
 
-  document.querySelector("[data-add-category]").addEventListener("click", () => {
+  document.querySelector("[data-add-category]")?.addEventListener("click", () => {
     const recipe = getSelectedRecipe();
     const input = document.querySelector("[data-new-category]");
-    const category = input.value.trim();
-    if (!category) { input.focus(); return; }
-    if (!state.categories.some((c) => c.toLowerCase() === category.toLowerCase())) {
-      state.categories.push(category);
+    const cat = input.value.trim(); if (!cat) { input.focus(); return; }
+    if (!state.categories.some((c) => c.toLowerCase() === cat.toLowerCase())) {
+      state.categories.push(cat);
       state.categories.sort((a, b) => a.localeCompare(b, "nl", { sensitivity: "base" }));
     }
-    recipe.category = category;
-    markUnsaved();
-    render();
+    recipe.category = cat; markUnsaved(); render();
   });
 
-  document.querySelector("[data-flour-input]").addEventListener("input", (event) => {
+  document.querySelector("[data-flour-input]")?.addEventListener("input", (e) => {
     const recipe = getSelectedRecipe();
-    const parsed = Number(event.target.value);
-    recipe.flourTotal = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+    const v = Number(e.target.value);
+    recipe.flourTotal = Number.isFinite(v) && v > 0 ? v : 0;
     recipe.targetDoughWeight = Math.round(recipe.flourTotal * getRecipeRatioTotal(recipe));
-    updateComputedFields();
-    markUnsaved();
+    updateComputedFields(); markUnsaved();
   });
 
-  document.querySelector("[data-target-dough]").addEventListener("input", (event) => {
+  document.querySelector("[data-target-dough]")?.addEventListener("input", (e) => {
     const recipe = getSelectedRecipe();
-    const parsed = Number(event.target.value);
-    const ratioTotal = getRecipeRatioTotal(recipe);
-    recipe.targetDoughWeight = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-    if (ratioTotal > 0) {
-      recipe.flourTotal = recipe.targetDoughWeight / ratioTotal;
-      const flourInput = document.querySelector("[data-flour-input]");
-      if (flourInput) flourInput.value = formatNumber(recipe.flourTotal, 1);
+    const v = Number(e.target.value);
+    const ratio = getRecipeRatioTotal(recipe);
+    recipe.targetDoughWeight = Number.isFinite(v) && v > 0 ? v : 0;
+    if (ratio > 0) {
+      recipe.flourTotal = recipe.targetDoughWeight / ratio;
+      const fi = document.querySelector("[data-flour-input]");
+      if (fi) fi.value = fmt(recipe.flourTotal, 1);
     }
-    updateComputedFields();
-    markUnsaved();
+    updateComputedFields(); markUnsaved();
   });
 
-  document.querySelector("[data-loaf-count]").addEventListener("input", (event) => {
-    const recipe = getSelectedRecipe();
-    const parsed = Number(event.target.value);
-    recipe.loafCount = Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
-    updateComputedFields();
-    markUnsaved();
+  document.querySelector("[data-loaf-count]")?.addEventListener("input", (e) => {
+    const v = Number(e.target.value);
+    getSelectedRecipe().loafCount = Number.isFinite(v) && v > 0 ? v : 1;
+    updateComputedFields(); markUnsaved();
   });
 
   document.querySelectorAll("[data-ingredient-index]").forEach((input) => {
-    input.addEventListener("input", (event) => {
+    input.addEventListener("input", (e) => {
       const recipe = getSelectedRecipe();
-      const flourTotal = recipe.flourTotal || 0;
-      const ingredientIndex = Number(event.target.dataset.ingredientIndex);
-      const parsed = Number(event.target.value);
-      const ingredient = recipe.ingredients[ingredientIndex];
-      if (event.target.dataset.kind === "name") ingredient.name = event.target.value;
-      if (event.target.dataset.kind === "percentage") ingredient.percentage = Number.isFinite(parsed) && parsed >= 0 ? parsed / 100 : 0;
-      if (event.target.dataset.kind === "amount") ingredient.percentage = Number.isFinite(parsed) && parsed >= 0 && flourTotal > 0 ? parsed / flourTotal : 0;
-      if (event.target.dataset.kind === "unit") {
-        ingredient.unit = event.target.value;
-        const unitLabel = document.querySelector(`[data-ingredient-index="${ingredientIndex}"][data-kind="amount"]`)?.closest(".amount-cell")?.querySelector("span");
-        if (unitLabel) unitLabel.textContent = ingredient.unit;
-      }
-      updateComputedFields();
-      markUnsaved();
+      const idx = Number(e.target.dataset.ingredientIndex);
+      const v = Number(e.target.value);
+      const ing = recipe.ingredients[idx];
+      if (!ing) return;
+      if (e.target.dataset.kind === "name") { ing.name = e.target.value; delete ing._new; }
+      if (e.target.dataset.kind === "percentage") ing.percentage = Number.isFinite(v) && v >= 0 ? v / 100 : 0;
+      if (e.target.dataset.kind === "amount") ing.percentage = Number.isFinite(v) && v >= 0 && recipe.flourTotal > 0 ? v / recipe.flourTotal : 0;
+      updateComputedFields(); markUnsaved();
     });
   });
-}
 
-function updateComputedFields() {
-  const recipe = getSelectedRecipe();
-  const flourTotal = recipe.flourTotal || 0;
-  const calculatedIngredients = calculateIngredients(recipe, flourTotal);
-  const activeElement = document.activeElement;
-
-  calculatedIngredients.forEach((ingredient, index) => {
-    const percentageInput = document.querySelector(`[data-ingredient-index="${index}"][data-kind="percentage"]`);
-    const amountInput = document.querySelector(`[data-ingredient-index="${index}"][data-kind="amount"]`);
-    if (percentageInput && percentageInput !== activeElement) percentageInput.value = formatNumber(ingredient.percentage * 100, 3);
-    if (amountInput && amountInput !== activeElement) amountInput.value = formatNumber(ingredient.amount, 1);
+  document.querySelector("[data-add-ingredient]")?.addEventListener("click", () => {
+    const recipe = getSelectedRecipe();
+    recipe.ingredients.push({ name: "", percentage: 0, unit: "g", _new: true });
+    render();
+    const inputs = document.querySelectorAll("[data-kind='name']");
+    inputs[inputs.length - 1]?.focus();
   });
 
-  const hydration = calculatedIngredients.find((i) => i.name === "Water");
-  const totalDoughWeight = calculatedIngredients.reduce((sum, i) => (i.name || i.percentage > 0) ? sum + i.amount : sum, 0);
-  document.querySelectorAll(`[data-recipe-flour="${recipe.id}"]`).forEach((label) => { label.textContent = `${formatWeight(flourTotal)} bloem`; });
-  document.querySelector("[data-dough-weight]").textContent = formatWeight(totalDoughWeight);
-  document.querySelector("[data-hydration]").textContent = formatPercent(hydration?.percentage || 0);
-  document.querySelector("[data-loaf-weight]").textContent = formatWeight(totalDoughWeight / (recipe.loafCount || 1));
-}
+  document.querySelectorAll("[data-delete-ingredient]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const recipe = getSelectedRecipe();
+      const idx = Number(btn.dataset.deleteIngredient);
+      if (recipe.ingredients.length <= 1) return;
+      recipe.ingredients.splice(idx, 1);
+      markUnsaved(); render();
+    });
+  });
 
-let autosaveTimer = null;
-
-function scheduleAutosave() {
-  clearTimeout(autosaveTimer);
-  autosaveTimer = setTimeout(async () => {
+  document.querySelector("[data-note-form]")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
     const recipe = getSelectedRecipe();
-    if (!recipe) return;
+    const text = document.querySelector("[data-note-text]").value.trim();
+    if (!text) { document.querySelector("[data-note-text]").focus(); return; }
+    recipe.notes.unshift({
+      date: fmtDate(document.querySelector("[data-note-date]").value || todayValue()),
+      rating: document.querySelector("[data-note-rating]").value || "ok",
+      snapshot: createBakeSnapshot(recipe),
+      text,
+    });
+    document.querySelector("[data-note-text]").value = "";
     await saveRecipeToDB(recipe);
-    const saveMessage = document.querySelector("[data-save-message]");
-    if (saveMessage) saveMessage.textContent = state.saveMessage;
-  }, 2000);
+    render();
+  });
+
+  document.querySelectorAll("[data-delete-note]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const recipe = getSelectedRecipe();
+      const idx = Number(btn.dataset.deleteNote);
+      if (!recipe.notes[idx]) return;
+      if (!confirm("Logboekitem verwijderen?")) return;
+      recipe.notes.splice(idx, 1);
+      await saveRecipeToDB(recipe); render();
+    });
+  });
+
+  document.querySelectorAll("[data-note-rating-update]").forEach((sel) => {
+    sel.addEventListener("change", async () => {
+      const recipe = getSelectedRecipe();
+      const idx = Number(sel.dataset.noteRatingUpdate);
+      if (!recipe.notes[idx]) return;
+      recipe.notes[idx].rating = sel.value;
+      render(); await saveRecipeToDB(recipe);
+    });
+  });
+
+  document.querySelectorAll("[data-dictate-target]").forEach((btn) => {
+    btn.addEventListener("click", () => startDictation(btn));
+  });
 }
 
-function markUnsaved() {
-  state.saveMessage = "Niet opgeslagen";
-  const saveMessage = document.querySelector("[data-save-message]");
-  if (saveMessage) saveMessage.textContent = state.saveMessage;
-  scheduleAutosave();
-}
-
-function renderAndRestoreFocus(selector) {
-  render();
-  const input = document.querySelector(selector);
-  input?.focus();
-  input?.setSelectionRange(input.value.length, input.value.length);
+// ─── Computed fields update ───────────────────────────────────────────────────
+function updateComputedFields() {
+  const recipe = getSelectedRecipe();
+  const calc = calculateIngredients(recipe);
+  const active = document.activeElement;
+  calc.forEach((ing, idx) => {
+    const pct = document.querySelector(`[data-ingredient-index="${idx}"][data-kind="percentage"]`);
+    const amt = document.querySelector(`[data-ingredient-index="${idx}"][data-kind="amount"]`);
+    if (pct && pct !== active) pct.value = fmt(ing.percentage * 100, 3);
+    if (amt && amt !== active) amt.value = fmt(ing.amount, 1);
+  });
+  const total = getTotalDoughWeight(recipe);
+  const hydration = calc.find((i) => i.name === "Water");
+  const dw = document.querySelector("[data-dough-weight]");
+  const hy = document.querySelector("[data-hydration]");
+  const lw = document.querySelector("[data-loaf-weight]");
+  if (dw) dw.textContent = fmtW(total);
+  if (hy) hy.textContent = fmtPct(hydration?.percentage || 0);
+  if (lw) lw.textContent = fmtW(total / (recipe.loafCount || 1));
 }
 
 // ─── Dictation ────────────────────────────────────────────────────────────────
 function startDictation(button) {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const target = document.querySelector(button.dataset.dictateTarget);
-  const status = button.closest(".method-panel, .dictation-field")?.querySelector("[data-dictation-status]");
   if (!target) return;
   if (activeDictation?.button === button) { activeDictation.recognition.stop(); return; }
   if (activeDictation) activeDictation.recognition.stop();
-  if (!SpeechRecognition) {
-    state.saveMessage = "Spraakherkenning wordt niet ondersteund in deze browser";
-    return;
-  }
-  const recognition = new SpeechRecognition();
-  recognition.lang = "nl-NL";
-  recognition.interimResults = true;
-  recognition.continuous = true;
-  const baseValue = target.value.trimEnd();
-  button.classList.add("listening");
-  button.innerHTML = `${icon("mic")}Stop`;
+  if (!SR) { state.saveMessage = "Spraakherkenning niet ondersteund"; return; }
+  const recognition = new SR();
+  recognition.lang = "nl-NL"; recognition.interimResults = true; recognition.continuous = true;
+  const base = target.value.trimEnd();
+  button.classList.add("listening"); button.innerHTML = `${icon("mic")}Stop`;
+  const status = button.closest(".method-panel, .dictation-field, .description-field")?.querySelector("[data-dictation-status]");
   if (status) status.textContent = "Luisteren...";
   activeDictation = { button, recognition };
-  recognition.addEventListener("result", (event) => {
-    const transcript = Array.from(event.results).map((r) => r[0]?.transcript || "").join(" ").trim();
-    if (!transcript) return;
-    target.value = appendDictatedText(baseValue, transcript);
+  recognition.addEventListener("result", (e) => {
+    const t = Array.from(e.results).map((r) => r[0]?.transcript || "").join(" ").trim();
+    if (!t) return;
+    const sep = base ? (/[.!?]\s*$/.test(base.trimEnd()) ? "\n" : " ") : "";
+    target.value = base ? `${base.trimEnd()}${sep}${t}` : t;
     target.dispatchEvent(new Event("input", { bubbles: true }));
     target.focus();
   });
   recognition.addEventListener("end", () => {
-    button.classList.remove("listening");
-    button.innerHTML = `${icon("mic")}Inspreken`;
+    button.classList.remove("listening"); button.innerHTML = `${icon("mic")}Inspreken`;
+    if (status) status.textContent = "";
     if (activeDictation?.recognition === recognition) activeDictation = null;
   });
   recognition.addEventListener("error", () => {
-    button.classList.remove("listening");
-    button.innerHTML = `${icon("mic")}Inspreken`;
+    button.classList.remove("listening"); button.innerHTML = `${icon("mic")}Inspreken`;
     if (activeDictation?.recognition === recognition) activeDictation = null;
   });
   recognition.start();
-}
-
-function appendDictatedText(currentValue, transcript) {
-  const trimmed = currentValue.trimEnd();
-  if (!trimmed) return transcript;
-  const separator = /[.!?]\s*$/.test(trimmed) ? "\n" : " ";
-  return `${trimmed}${separator}${transcript}`;
 }
 
 // ─── Start ────────────────────────────────────────────────────────────────────
