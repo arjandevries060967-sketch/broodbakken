@@ -179,6 +179,7 @@ async function deleteRecipeFromDB(recipeId) {
 
 async function insertRecipeToDB(recipe) {
   const dbRecipe = localToDB(recipe);
+  delete dbRecipe.id; // Laat Supabase een UUID genereren
   const { data, error } = await db
     .from("recipes")
     .insert({ ...dbRecipe, user_id: state.user.id })
