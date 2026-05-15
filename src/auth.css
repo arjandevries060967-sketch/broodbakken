@@ -461,3 +461,103 @@ input[readonly] {
 
   table { min-width: 0 !important; width: 100% !important; }
 }
+
+/* ── iPhone fixes (393px breed) ─────────────────────────────────────────── */
+@media (max-width: 430px) {
+  /* Voorkom overflow */
+  html, body { overflow-x: hidden; max-width: 100vw; }
+
+  * { box-sizing: border-box; }
+
+  .app-shell {
+    width: 100% !important;
+    padding: 8px 0 20px !important;
+    overflow-x: hidden;
+  }
+
+  /* Topbar */
+  .topbar {
+    padding: 10px 12px !important;
+    gap: 6px !important;
+    align-items: flex-start !important;
+  }
+
+  .brand-lockup { gap: 10px; }
+  .brand-mark { width: 44px !important; aspect-ratio: 1; }
+  .topbar h1 { font-size: 1.4rem !important; }
+  .main-nav { width: 100%; }
+  .nav-btn { flex: 1; justify-content: center; padding: 6px 8px; font-size: 0.78rem; }
+  .topbar-user { width: 100%; justify-content: flex-end; }
+
+  /* Werkbench */
+  .workbench-screen, .tile-screen {
+    border-left: none !important; border-right: none !important;
+    border-radius: 0 !important; width: 100% !important;
+  }
+
+  .workbench-body, .tile-screen { padding: 12px !important; }
+  .workbench-topbar { padding: 10px 12px !important; }
+
+  /* Recipe header inputs */
+  .recipe-name-field input { font-size: 1.6rem !important; }
+  .category-field > div { display: grid; grid-template-columns: 1fr !important; gap: 8px; }
+  .category-field select,
+  .category-field input { width: 100% !important; }
+
+  /* Metriek */
+  .metric-row {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  /* Bloem indicator */
+  .ingredients-group-title { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .flour-total-indicator { margin-left: 0 !important; }
+  .flour-total-input { width: 90px; }
+
+  /* Tabel volledig gestapeld */
+  .table-wrap { overflow-x: hidden !important; }
+  table, thead, tbody, tr, td, th { display: block !important; width: 100% !important; min-width: 0 !important; }
+  thead { display: none !important; }
+
+  tr {
+    display: grid !important;
+    grid-template-columns: 1fr auto auto !important;
+    gap: 6px !important;
+    padding: 10px 0 !important;
+    border-bottom: 1px solid var(--lijn) !important;
+    align-items: center !important;
+  }
+
+  tr td:first-child { grid-column: 1 / -1; }
+  tr td:nth-child(2) { grid-column: 1 / 2; }
+  tr td:nth-child(3) { grid-column: 2 / 3; }
+  tr td:last-child { grid-column: 3 / 4; }
+
+  .material-input { width: 100% !important; }
+  .number-cell { min-width: 0 !important; width: 100% !important; }
+  .number-cell input { min-width: 0 !important; }
+
+  /* Filters */
+  .recipe-filters { gap: 5px; }
+  .filter-btn { font-size: 0.75rem; padding: 4px 8px; }
+
+  /* Tegel */
+  .tile-grid { grid-template-columns: 1fr !important; }
+  .recipe-tile { padding: 12px; }
+  .recipe-tile-actions { flex-wrap: wrap; }
+  .recipe-tile-actions .tool-button { flex: 1; min-width: 80px; }
+
+  /* Logboek form */
+  .note-form-wide { grid-template-columns: 1fr !important; }
+
+  /* Meer opties dropdown */
+  .more-options-list { right: 0; left: auto; width: 200px; }
+
+  /* Werkwijze textarea */
+  textarea { width: 100% !important; }
+
+  /* Inspreken knop */
+  .field-header { flex-wrap: wrap; gap: 6px; }
+  .dictate-button { font-size: 0.78rem; }
+}
