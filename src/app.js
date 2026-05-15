@@ -109,7 +109,7 @@ async function signOut() { await db.auth.signOut(); }
 
 // ─── Database ─────────────────────────────────────────────────────────────────
 async function loadRecipesFromDB() {
-  const { data, error } = await db.from("recipes").select("*").order("created_at", { ascending: true });
+  const { data, error } = await db.from("recipes").select("*").eq("user_id", state.user.id).order("created_at", { ascending: true });
   if (error) { state.saveMessage = "Fout bij laden"; return; }
   if (data.length === 0) { await seedInitialRecipes(); return; }
   state.recipes = data.map(dbToLocal);
@@ -146,7 +146,7 @@ async function saveRecipeToDB(recipe) {
 }
 
 async function deleteRecipeFromDB(id) {
-  await db.from("recipes").delete().eq("id", id);
+  await db.from("recipes").delete().eq("id", id).eq("user_id", state.user.id);
 }
 
 async function insertRecipeToDB(recipe) {
@@ -361,11 +361,16 @@ function renderRatingOptions(selected) {
 }
 function renderSnapshot(snap) {
   if (!snap) return "";
+  const items = [
+    ...(Array.isArray(snap.flours) ? snap.flours : []),
+    ...(Array.isArray(snap.additions) ? snap.additions : []),
+    ...(Array.isArray(snap.ingredients) ? snap.ingredients : []),
+  ];
   return `
     <details class="snapshot">
       <summary>Bakbeurt: ${fmtW(snap.doughWeight || 0)} deeg · ${fmtW(snap.flourTotal || 0)} bloem</summary>
       <div class="snapshot-grid">
-        ${(snap.ingredients || []).slice(0, 10).map((i) => `<span>${esc(i.name)}</span><strong>${fmt(Number(i.amount) || 0, 1)} ${esc(i.unit || "g")}</strong>`).join("")}
+        ${items.slice(0, 12).map((i) => `<span>${esc(i.name)}</span><strong>${fmt(Number(i.amount) || 0, 1)} ${esc(i.unit || "g")}</strong>`).join("")}
       </div>
     </details>`;
 }
