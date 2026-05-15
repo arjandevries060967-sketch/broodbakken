@@ -218,7 +218,15 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
 .auth-switch { margin: 16px 0 0; color: var(--steen-grijs); font-size: 0.88rem; }
 .auth-link { padding: 0; border: 0; background: transparent; color: var(--oven-bruin); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 
-/* ── Print ───────────────────────────────────────────────────────────────── */
+/* ── Lege staat in tabel wrap ────────────────────────────────────────────── */
+.table-wrap .empty-state {
+  display: block;
+  padding: 12px 0;
+  text-align: left;
+  font-style: normal;
+  color: var(--steen-grijs);
+  font-size: 0.86rem;
+}
 @media print {
   .topbar, .workbench-topbar, .tabbar,
   .more-options, #btn-logout, .topbar-user,
