@@ -593,3 +593,23 @@ input[readonly] {
   .metric-row { grid-template-columns: 1fr 1fr !important; }
   .metric-row > div:last-child { grid-column: 1 / -1; }
 }
+
+/* ── Tegel acties mobiel fix ─────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .recipe-tile { overflow: hidden; width: 100%; }
+  .recipe-tile-top { flex-wrap: wrap; }
+  .recipe-tile-badges { flex-wrap: wrap; }
+  .recipe-tile-actions {
+    display: grid !important;
+    grid-template-columns: 1fr auto auto auto !important;
+    gap: 6px !important;
+    width: 100% !important;
+  }
+  .recipe-tile-actions .tool-button { width: 100% !important; }
+
+  .tile-screen-header { flex-wrap: wrap; }
+  .tile-screen-header .tool-button { width: 100% !important; }
+
+  .recipe-filters { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
+  .filter-btn { flex-shrink: 0; }
+}
