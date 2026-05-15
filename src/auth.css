@@ -409,3 +409,55 @@ input[readonly] {
   background: rgba(255,220,50,0.15);
   color: #8a6a10;
 }
+
+/* ── Extra mobiel fixes ──────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .app-shell {
+    width: 100% !important;
+    padding: 10px 0 20px !important;
+  }
+
+  .tile-screen {
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    padding: 12px !important;
+  }
+
+  .workbench-screen {
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+  }
+
+  .recipe-tile {
+    padding: 12px;
+  }
+
+  .tile-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .recipe-filters {
+    gap: 6px;
+  }
+
+  .filter-btn {
+    font-size: 0.78rem;
+    padding: 5px 10px;
+  }
+
+  .tile-screen-header h2 {
+    font-size: 1.2rem;
+  }
+
+  .workbench-topbar {
+    padding: 10px 12px;
+  }
+
+  .workbench-body {
+    padding: 12px;
+  }
+
+  table { min-width: 0 !important; width: 100% !important; }
+}
