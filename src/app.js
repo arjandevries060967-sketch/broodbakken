@@ -740,7 +740,7 @@ function render() {
                 <small class="dictation-status" data-dictation-status></small>
               </label>
             </section>
-          ` : `
+          ` : state.activeTab === "logbook" ? `
             <section class="logbook-workspace" aria-label="Volledig baklogboek">
               <form class="note-form note-form-wide" data-note-form>
                 <input data-note-date type="date" aria-label="Datum" value="${getTodayInputValue()}" />
@@ -777,8 +777,7 @@ function render() {
                 }
               </div>
             </section>
-          `}
-          ${state.activeTab === "library" ? `
+          ` : state.activeTab === "library" ? `
             <section class="library-workspace" aria-label="Gedeelde recepten bibliotheek">
               ${state.libraryLoading ? `<p class="empty-state">Bibliotheek laden...</p>` :
                 state.library.length === 0 ? `<p class="empty-state">Nog geen gedeelde recepten van andere gebruikers. Zodra iemand een recept deelt verschijnt het hier.</p>` :
