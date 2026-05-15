@@ -227,7 +227,7 @@ function localToDB(recipe) {
     last_used_at: recipe.lastUsedAt || 0,
     target_dough_weight: recipe.targetDoughWeight || 0,
     loaf_count: recipe.loafCount || 1,
-    ingredients: recipe.ingredients.filter((i) => i.name || i.percentage > 0),
+    ingredients: recipe.ingredients.filter((i) => i.name || i.percentage > 0).map(({ _new, ...i }) => i),
     notes: recipe.notes,
   };
 }
@@ -244,12 +244,12 @@ function ensureEditableRows(recipe) {
   recipe.notes = Array.isArray(recipe.notes) ? recipe.notes : [];
   recipe.notes.forEach((note) => { note.rating = note.rating || "ok"; });
 
-  // Verwijder lege rijen — worden dynamisch toegevoegd via de knop
-  recipe.ingredients = recipe.ingredients.filter((i) => i.name || i.percentage > 0);
+  // Verwijder lege rijen — maar bewaar rijen die als 'nieuw' gemarkeerd zijn
+  recipe.ingredients = recipe.ingredients.filter((i) => i.name || i.percentage > 0 || i._new);
 }
 
 function createBlankIngredient() {
-  return { name: "", percentage: 0, unit: "g" };
+  return { name: "", percentage: 0, unit: "g", _new: true };
 }
 
 function createBlankRecipe() {
