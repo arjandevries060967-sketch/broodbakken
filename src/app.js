@@ -113,12 +113,30 @@ let activeDictation = null;
 let autosaveTimer = null;
 
 function isPasswordRecoveryUrl() {
-  const params = new URLSearchParams(window.location.hash.replace("#", ""));
-  return params.get("type") === "recovery";
+  const search = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace("#", ""));
+  return search.get("type") === "recovery" || hash.get("type") === "recovery";
+}
+
+async function exchangeRecoveryCodeIfPresent() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("code");
+  if (!code || !isPasswordRecoveryUrl()) return null;
+  const { data, error } = await db.auth.exchangeCodeForSession(code);
+  if (error) return error.message;
+  state.user = data.session?.user || null;
+  state.authView = "reset";
+  window.history.replaceState({}, document.title, window.location.pathname);
+  return null;
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 async function initAuth() {
+  const recoveryError = await exchangeRecoveryCodeIfPresent();
+  if (recoveryError) {
+    state.authView = "forgot";
+    state.saveMessage = recoveryError;
+  }
   const { data: { session } } = await db.auth.getSession();
   if (session?.user) {
     state.user = session.user;
@@ -136,6 +154,7 @@ async function initAuth() {
       state.user = session.user;
       state.authView = "reset";
       state.saveMessage = "";
+      window.history.replaceState({}, document.title, window.location.pathname);
       renderAuthScreen();
     } else if (event === "SIGNED_IN" && session?.user) {
       state.user = session.user;
@@ -163,7 +182,7 @@ async function signUp(email, password) {
   return error?.message || null;
 }
 async function requestPasswordReset(email) {
-  const redirectTo = window.location.origin + window.location.pathname;
+  const redirectTo = window.location.origin + window.location.pathname + "?type=recovery";
   const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo });
   return error?.message || null;
 }
