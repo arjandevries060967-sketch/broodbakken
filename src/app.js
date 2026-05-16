@@ -107,6 +107,7 @@ const state = {
   libraryProfiles: {},     // profiel per userId
   recipeFilter: "alle",    // "alle" | "gist" | "zuurdesem" | "favoriet"
   photoPreview: null,
+  confirmDialog: null,
 };
 
 const root = document.querySelector("#root");
@@ -114,8 +115,14 @@ let activeDictation = null;
 let autosaveTimer = null;
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && state.photoPreview) {
+  if (e.key !== "Escape") return;
+  if (state.photoPreview) {
     state.photoPreview = null;
+    render();
+    return;
+  }
+  if (state.confirmDialog) {
+    state.confirmDialog = null;
     render();
   }
 });
@@ -239,7 +246,8 @@ async function saveRecipeToDB(recipe) {
 }
 
 async function deleteRecipeFromDB(id) {
-  await db.from("recipes").delete().eq("id", id).eq("user_id", state.user.id);
+  const { error } = await db.from("recipes").delete().eq("id", id).select("id");
+  return { ok: !error, error };
 }
 
 async function insertRecipeToDB(recipe) {
@@ -1058,6 +1066,27 @@ function renderPhotoPreview() {
     </div>`;
 }
 
+function renderConfirmDialog() {
+  if (!state.confirmDialog) return "";
+  if (state.confirmDialog.type !== "delete-recipe") return "";
+  const recipe = state.recipes.find((r) => r.id === state.confirmDialog.recipeId);
+  const name = recipe?.name || "dit recept";
+  return `
+    <div class="confirm-backdrop" data-confirm-backdrop role="dialog" aria-modal="true" aria-label="Recept verwijderen">
+      <section class="confirm-card">
+        <div class="confirm-icon">${icon("trash")}</div>
+        <div class="confirm-copy">
+          <h3>Recept verwijderen?</h3>
+          <p>Je verwijdert <strong>${esc(name)}</strong> uit je Broodboek. Dit kun je alleen terughalen met een backup.</p>
+        </div>
+        <div class="confirm-actions">
+          <button class="tool-button" data-cancel-confirm type="button">Annuleren</button>
+          <button class="tool-button danger" data-confirm-delete-recipe type="button">Verwijderen</button>
+        </div>
+      </section>
+    </div>`;
+}
+
 // ─── Hoofdrender ──────────────────────────────────────────────────────────────
 function render() {
   if (state.loading) {
@@ -1071,7 +1100,7 @@ function render() {
   else if (state.screen === "workbench") root.innerHTML = renderWorkbench();
   else if (state.screen === "profile") root.innerHTML = renderProfile();
 
-  root.insertAdjacentHTML("beforeend", renderPhotoPreview());
+  root.insertAdjacentHTML("beforeend", renderPhotoPreview() + renderConfirmDialog());
   bindEvents();
 }
 
@@ -1089,6 +1118,37 @@ function markUnsaved() {
   const el = document.querySelector("[data-save-message]");
   if (el) el.textContent = state.saveMessage;
   scheduleAutosave();
+}
+
+function openDeleteRecipeDialog(recipeId) {
+  const recipe = state.recipes.find((r) => r.id === recipeId);
+  if (!recipe) return;
+  if (state.recipes.length <= 1) {
+    state.saveMessage = "Je kunt het laatste recept niet verwijderen.";
+    render();
+    return;
+  }
+  state.confirmDialog = { type: "delete-recipe", recipeId };
+  render();
+}
+
+async function confirmDeleteRecipe(recipeId) {
+  const recipe = state.recipes.find((r) => r.id === recipeId);
+  if (!recipe) { state.confirmDialog = null; render(); return; }
+  const result = await deleteRecipeFromDB(recipe.id);
+  if (!result.ok) {
+    state.confirmDialog = null;
+    state.saveMessage = `Verwijderen mislukt: ${result.error?.message || "onbekende fout"}`;
+    render();
+    return;
+  }
+  state.recipes = state.recipes.filter((r) => r.id !== recipe.id);
+  state.selectedRecipeId = state.recipes[0]?.id || "";
+  state.categories = getCategoriesFromRecipes(state.recipes);
+  state.screen = "myrecipes";
+  state.confirmDialog = null;
+  state.saveMessage = `"${recipe.name}" verwijderd`;
+  render();
 }
 
 // ─── Events ───────────────────────────────────────────────────────────────────
@@ -1176,6 +1236,23 @@ function bindEvents() {
     render();
   });
 
+  document.querySelector("[data-confirm-backdrop]")?.addEventListener("click", (e) => {
+    if (e.target !== e.currentTarget) return;
+    state.confirmDialog = null;
+    render();
+  });
+
+  document.querySelector("[data-cancel-confirm]")?.addEventListener("click", () => {
+    state.confirmDialog = null;
+    render();
+  });
+
+  document.querySelector("[data-confirm-delete-recipe]")?.addEventListener("click", async () => {
+    const recipeId = state.confirmDialog?.recipeId;
+    if (!recipeId) return;
+    await confirmDeleteRecipe(recipeId);
+  });
+
   // Verberg recept uit bibliotheek
   document.querySelectorAll("[data-hide-recipe]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -1258,16 +1335,9 @@ function bindEvents() {
   });
 
   document.querySelectorAll("[data-delete-tile]").forEach((btn) => {
-    btn.addEventListener("click", async (e) => {
+    btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      const recipe = state.recipes.find((r) => r.id === btn.dataset.deleteTile);
-      if (!recipe) return;
-      if (state.recipes.length <= 1) { alert("Je kunt het laatste recept niet verwijderen."); return; }
-      if (!confirm(`"${recipe.name}" verwijderen?`)) return;
-      await deleteRecipeFromDB(recipe.id);
-      state.recipes = state.recipes.filter((r) => r.id !== recipe.id);
-      state.selectedRecipeId = state.recipes[0]?.id || "";
-      render();
+      openDeleteRecipeDialog(btn.dataset.deleteTile);
     });
   });
 
@@ -1359,15 +1429,9 @@ function bindEvents() {
     reader.readAsText(file);
   });
 
-  document.querySelector("[data-delete-recipe]")?.addEventListener("click", async () => {
+  document.querySelector("[data-delete-recipe]")?.addEventListener("click", () => {
     const recipe = getSelectedRecipe();
-    if (state.recipes.length <= 1) { alert("Je kunt het laatste recept niet verwijderen."); return; }
-    if (!confirm(`"${recipe.name}" verwijderen?`)) return;
-    await deleteRecipeFromDB(recipe.id);
-    state.recipes = state.recipes.filter((r) => r.id !== recipe.id);
-    state.selectedRecipeId = state.recipes[0]?.id || "";
-    state.screen = "myrecipes";
-    render();
+    if (recipe) openDeleteRecipeDialog(recipe.id);
   });
 
   document.querySelectorAll("[data-tab]").forEach((btn) => {
