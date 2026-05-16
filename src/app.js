@@ -488,6 +488,10 @@ function backupChecksum(serialized) {
   return String(hash);
 }
 
+function backupContentChecksum(payload) {
+  return backupChecksum(JSON.stringify({ app: payload?.app || "Broodboek", recipes: payload?.recipes || [] }));
+}
+
 function readAutomaticBackups() {
   try {
     const raw = localStorage.getItem(backupStorageKey());
@@ -505,7 +509,7 @@ function localBackupToPanel(backup) {
       reason: backup.reason || "auto",
       recipeCount: backup.recipeCount ?? payload?.recipes?.length ?? 0,
       payload,
-      checksum: backup.checksum || backupChecksum(backup.serialized || JSON.stringify(payload || {})),
+      checksum: backupContentChecksum(payload || {}),
       source: "lokaal",
     };
   } catch {
@@ -528,7 +532,7 @@ function getPanelBackups() {
   return [...server, ...local]
     .filter(backupHasRecipes)
     .filter((backup) => {
-      const key = backup.checksum || backup.id;
+      const key = backup.checksum || backupContentChecksum(backup.payload || {}) || backup.id;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -556,7 +560,7 @@ async function loadServerBackups() {
     reason: backup.reason || "auto",
     recipeCount: backup.recipe_count || 0,
     payload: backup.payload,
-    checksum: backup.checksum || backupChecksum(JSON.stringify(backup.payload || {})),
+    checksum: backupContentChecksum(backup.payload || {}),
     source: "Supabase",
   }));
   state.backupSyncStatus = "";
@@ -588,7 +592,7 @@ async function saveAutomaticBackup(reason = "auto") {
   if (!state.user) return;
   const payload = createBackupPayload();
   const serialized = JSON.stringify(payload);
-  const checksum = backupChecksum(serialized);
+  const checksum = backupContentChecksum(payload);
   if (state.recipes.length === 0) return;
   const backups = getPanelBackups();
   if (backups[0]?.checksum === checksum || backups[0]?.serialized === serialized) {
