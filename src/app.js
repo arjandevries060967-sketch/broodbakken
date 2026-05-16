@@ -600,6 +600,14 @@ function renderTopbar(showBack = false, backLabel = "") {
           <button class="nav-btn ${state.screen === "library" ? "active" : ""}" data-screen="library">${icon("book")}Bibliotheek</button>
         </nav>`}
       <div class="topbar-user">
+        <details class="more-options app-options">
+          <summary>Opties</summary>
+          <div class="more-options-list">
+            <button class="tool-button wide" data-export-excel type="button">${icon("save")}Excel-backup</button>
+            <button class="tool-button wide" data-export-recipes type="button">${icon("save")}Volledige backup</button>
+            <label class="tool-button wide file-tool">${icon("plus")}Backup terugzetten<input data-import-recipes type="file" accept="application/json,.json" /></label>
+          </div>
+        </details>
         <button class="avatar-btn" data-screen="profile" title="Profiel">${avatarHtml}</button>
         <button class="tool-button" id="btn-logout">${icon("logout")}Uitloggen</button>
       </div>
@@ -866,9 +874,6 @@ function renderWorkbench() {
               <summary>Meer opties</summary>
               <div class="more-options-list">
                 <button class="tool-button wide" data-save-as type="button">${icon("save")}Opslaan als kopie</button>
-                <button class="tool-button wide" data-export-excel type="button">${icon("save")}Excel-backup</button>
-                <button class="tool-button wide" data-export-recipes type="button">${icon("save")}Volledige backup</button>
-                <label class="tool-button wide file-tool">${icon("plus")}Backup terugzetten<input data-import-recipes type="file" accept="application/json,.json" /></label>
                 <button class="tool-button danger wide" data-delete-recipe type="button">${icon("trash")}Verwijder recept</button>
               </div>
             </details>

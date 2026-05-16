@@ -185,6 +185,7 @@
 
 /* ── Meer opties dropdown ────────────────────────────────────────────────── */
 .more-options { position: relative; }
+.app-options .more-options-list { right: 0; }
 .more-options summary {
   display: inline-flex; align-items: center; gap: 6px;
   min-height: 36px; padding: 7px 12px;
@@ -519,8 +520,9 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
   .topbar {
     grid-template-columns: minmax(0, 1fr) auto !important;
   }
-  .brand-lockup { max-width: calc(100vw - 116px); }
-  .topbar-user { max-width: 82px; overflow: hidden; }
+  .brand-lockup { max-width: calc(100vw - 190px); }
+  .topbar-user { max-width: none; overflow: visible; }
+  .app-options summary { min-height: 36px; padding: 6px 9px; font-size: 0.74rem; }
   #btn-logout { flex: 0 0 38px; }
 
   .main-nav {
@@ -585,6 +587,7 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
   .topbar h1 { font-size: 1.05rem !important; }
   .avatar-small { width: 32px; height: 32px; }
   #btn-logout { width: 36px; flex-basis: 36px; }
+  .app-options summary { min-height: 34px; padding: 6px 8px; }
   .nav-btn { min-height: 34px; padding: 6px 7px !important; font-size: 0.74rem !important; }
 
   .tile-screen { padding: 10px !important; }
