@@ -111,11 +111,13 @@ const state = {
   backupPanelOpen: false,
   backups: [],
   backupSyncStatus: "",
+  backupReminderDismissed: "",
 };
 
 const root = document.querySelector("#root");
 let activeDictation = null;
 let autosaveTimer = null;
+const BACKUP_REMINDER_DAYS = 7;
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
@@ -225,6 +227,7 @@ async function loadRecipesFromDB() {
     state.categories = getCategoriesFromRecipes(state.recipes);
     await saveAutomaticBackup("auto");
     await loadServerBackups();
+    state.backupReminderDismissed = readBackupReminderDismissed();
     return;
   }
   state.recipes = data.map(dbToLocal);
@@ -232,6 +235,7 @@ async function loadRecipesFromDB() {
   state.categories = getCategoriesFromRecipes(state.recipes);
   await saveAutomaticBackup("auto");
   await loadServerBackups();
+  state.backupReminderDismissed = readBackupReminderDismissed();
 }
 
 async function seedInitialRecipes() {
@@ -482,6 +486,19 @@ function backupStorageKey() {
   return `broodboek:auto-backups:${state.user?.id || "anon"}`;
 }
 
+function backupReminderKey() {
+  return `broodboek:backup-reminder-dismissed:${state.user?.id || "anon"}`;
+}
+
+function readBackupReminderDismissed() {
+  try { return localStorage.getItem(backupReminderKey()) || ""; } catch { return ""; }
+}
+
+function dismissBackupReminder() {
+  state.backupReminderDismissed = todayValue();
+  try { localStorage.setItem(backupReminderKey(), state.backupReminderDismissed); } catch {}
+}
+
 function backupChecksum(serialized) {
   let hash = 0;
   for (let i = 0; i < serialized.length; i += 1) hash = ((hash << 5) - hash + serialized.charCodeAt(i)) | 0;
@@ -568,7 +585,7 @@ async function loadServerBackups() {
 
 async function saveServerBackup(payload, serialized, reason, checksum) {
   if (!state.user) return;
-  if (state.backups[0]?.checksum === checksum) return;
+  if (reason !== "handmatig" && state.backups[0]?.checksum === checksum) return;
   const { error } = await db.from("recipe_backups").insert({
     user_id: state.user.id,
     reason,
@@ -612,6 +629,21 @@ async function saveAutomaticBackup(reason = "auto") {
   await saveServerBackup(payload, serialized, reason, checksum);
 }
 
+function daysSince(value) {
+  const time = new Date(value).getTime();
+  if (!Number.isFinite(time)) return Infinity;
+  return (Date.now() - time) / 86400000;
+}
+
+function shouldShowBackupReminder() {
+  if (!state.user || state.recipes.length === 0 || state.backupPanelOpen || state.confirmDialog) return false;
+  if (state.backupReminderDismissed === todayValue()) return false;
+  const backups = getPanelBackups();
+  const latestManual = backups.find((backup) => backup.reason === "handmatig" && backup.source === "Supabase");
+  if (!latestManual) return true;
+  return daysSince(latestManual.createdAt) >= BACKUP_REMINDER_DAYS;
+}
+
 function formatBackupDate(value) {
   return new Intl.DateTimeFormat("nl-NL", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
@@ -629,6 +661,7 @@ function downloadJsonBackup() {
 async function makeOnlineBackup() {
   await saveAutomaticBackup("handmatig");
   await loadServerBackups();
+  dismissBackupReminder();
   state.saveMessage = state.backupSyncStatus ? "Online backup nog niet ingericht in Supabase" : "Online backup gelukt";
   render();
 }
@@ -1293,6 +1326,26 @@ function renderConfirmDialog() {
     </div>`;
 }
 
+function renderBackupReminder() {
+  if (!shouldShowBackupReminder()) return "";
+  const backups = getPanelBackups();
+  const latestManual = backups.find((backup) => backup.reason === "handmatig" && backup.source === "Supabase");
+  const copy = latestManual
+    ? `Je laatste handmatige online back-up is van ${esc(formatBackupDate(latestManual.createdAt))}.`
+    : "Maak een eerste handmatige online back-up, zodat je recepten veilig terug te zetten zijn.";
+  return `
+    <aside class="backup-reminder" role="status" aria-label="Backup herinnering">
+      <div>
+        <strong>Even back-uppen?</strong>
+        <span>${copy}</span>
+      </div>
+      <div class="backup-reminder-actions">
+        <button class="tool-button primary" data-reminder-online-backup type="button">${icon("save")}Online backup</button>
+        <button class="icon-action" data-dismiss-backup-reminder type="button" aria-label="Herinnering vandaag sluiten">&times;</button>
+      </div>
+    </aside>`;
+}
+
 function renderAppToast() {
   if (!state.saveMessage || state.loading || !state.user || state.authView === "reset") return "";
   return `<div class="app-toast" role="status">${esc(state.saveMessage)}</div>`;
@@ -1311,7 +1364,7 @@ function render() {
   else if (state.screen === "workbench") root.innerHTML = renderWorkbench();
   else if (state.screen === "profile") root.innerHTML = renderProfile();
 
-  root.insertAdjacentHTML("beforeend", renderPhotoPreview() + renderBackupPanel() + renderConfirmDialog() + renderAppToast());
+  root.insertAdjacentHTML("beforeend", renderPhotoPreview() + renderBackupPanel() + renderConfirmDialog() + renderBackupReminder() + renderAppToast());
   bindEvents();
 }
 
@@ -1457,6 +1510,13 @@ function bindEvents() {
 
   document.querySelector("[data-close-photo-preview]")?.addEventListener("click", () => {
     state.photoPreview = null;
+    render();
+  });
+
+  document.querySelector("[data-reminder-online-backup]")?.addEventListener("click", makeOnlineBackup);
+
+  document.querySelector("[data-dismiss-backup-reminder]")?.addEventListener("click", () => {
+    dismissBackupReminder();
     render();
   });
 
