@@ -798,7 +798,8 @@ function renderWorkbench() {
             <div class="recipe-photo-content">
               ${recipe.photoUrl ? `<button class="recipe-photo-button" data-open-photo-preview type="button" aria-label="Vergroot broodfoto"><img class="recipe-photo" src="${esc(recipe.photoUrl)}" alt="${esc(recipe.name)}" /></button>` : `<div class="recipe-photo-placeholder">Nog geen broodfoto</div>`}
               <div class="recipe-photo-actions">
-                <label class="tool-button file-tool">${icon("plus")}${recipe.photoUrl ? "Vervang foto" : "Foto kiezen"}<input data-recipe-photo type="file" accept="image/*" capture="environment" /></label>
+                <label class="tool-button file-tool">${icon("plus")}${recipe.photoUrl ? "Nieuwe foto maken" : "Maak foto"}<input data-recipe-photo type="file" accept="image/*" capture="environment" /></label>
+                <label class="tool-button file-tool">${icon("book")}Kies uit bibliotheek<input data-recipe-photo type="file" accept="image/*" /></label>
                 ${recipe.photoUrl ? `<button class="tool-button danger" data-remove-recipe-photo type="button">${icon("trash")}Verwijder foto</button>` : ""}
               </div>
             </div>
@@ -1070,20 +1071,22 @@ function bindEvents() {
     render();
   });
 
-  document.querySelector("[data-recipe-photo]")?.addEventListener("change", async (e) => {
-    const recipe = getSelectedRecipe();
-    const file = e.target.files?.[0];
-    if (!recipe || !file) return;
-    state.saveMessage = "Broodfoto uploaden..."; render();
-    const result = await uploadRecipePhoto(recipe, file);
-    if (result.url) {
-      recipe.photoUrl = result.url;
-      await saveRecipeToDB(recipe);
-      state.saveMessage = "Broodfoto opgeslagen";
-    } else {
-      state.saveMessage = `Broodfoto uploaden mislukt: ${result.error || "onbekende fout"}`;
-    }
-    render();
+  document.querySelectorAll("[data-recipe-photo]").forEach((input) => {
+    input.addEventListener("change", async (e) => {
+      const recipe = getSelectedRecipe();
+      const file = e.target.files?.[0];
+      if (!recipe || !file) return;
+      state.saveMessage = "Broodfoto uploaden..."; render();
+      const result = await uploadRecipePhoto(recipe, file);
+      if (result.url) {
+        recipe.photoUrl = result.url;
+        await saveRecipeToDB(recipe);
+        state.saveMessage = "Broodfoto opgeslagen";
+      } else {
+        state.saveMessage = `Broodfoto uploaden mislukt: ${result.error || "onbekende fout"}`;
+      }
+      render();
+    });
   });
 
   document.querySelector("[data-remove-recipe-photo]")?.addEventListener("click", async () => {
