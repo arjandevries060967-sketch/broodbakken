@@ -107,7 +107,10 @@
 .recipe-photo, .recipe-photo-placeholder {
   width: 100%; max-height: 220px; aspect-ratio: 16 / 9;
   border-radius: 7px; border: 1px solid var(--lijn);
-  background: #fbf4e8; object-fit: cover;
+  background: #fbf4e8;
+}
+.recipe-photo {
+  object-fit: contain; object-position: center;
 }
 .recipe-photo-placeholder {
   display: grid; place-items: center; color: var(--steen-grijs);
