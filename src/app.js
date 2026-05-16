@@ -267,6 +267,15 @@ async function uploadAvatar(file) {
   return data.publicUrl;
 }
 
+async function uploadRecipePhoto(recipe, file) {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${state.user.id}/${recipe.id}/brood.${ext}`;
+  const { error } = await db.storage.from("recipe-photos").upload(path, file, { upsert: true });
+  if (error) return null;
+  const { data } = db.storage.from("recipe-photos").getPublicUrl(path);
+  return data.publicUrl;
+}
+
 async function loadLibraryProfiles() {
   if (state.library.length === 0) return;
   const userIds = [...new Set(state.library.map((r) => r.userId))];
@@ -289,12 +298,14 @@ function dbToLocal(row) {
     shared: Boolean(row.shared),
     lastUsedAt: Number(row.last_used_at) || 0,
     loafCount: Math.max(1, Number(row.loaf_count) || 1),
+    photoUrl: Array.isArray(row.notes) ? (row.notes.find((n) => n?.type === "recipe-photo")?.url || "") : "",
     flours: Array.isArray(row.flours) ? row.flours : [],
     additions: Array.isArray(row.additions) ? row.additions : [],
     notes: Array.isArray(row.notes) ? row.notes : [],
   };
   r.flours = r.flours.filter((i) => i.name || i.percentage > 0);
   r.additions = r.additions.filter((i) => i.name || i.percentage > 0);
+  r.notes = r.notes.filter((n) => n?.type !== "recipe-photo");
   r.notes.forEach((n) => { n.rating = n.rating || "ok"; });
   return r;
 }
@@ -313,7 +324,10 @@ function localToDB(recipe) {
     loaf_count: recipe.loafCount || 1,
     flours: recipe.flours.filter((i) => i.name || i.percentage > 0).map(({ _new, amount, ...i }) => i),
     additions: recipe.additions.filter((i) => i.name || i.percentage > 0).map(({ _new, ...i }) => i),
-    notes: recipe.notes,
+    notes: [
+      ...(recipe.photoUrl ? [{ type: "recipe-photo", url: recipe.photoUrl }] : []),
+      ...recipe.notes.filter((n) => n?.type !== "recipe-photo"),
+    ],
   };
 }
 
@@ -344,7 +358,7 @@ function renderIngredientDatalists() {
 function createBlankRecipe() {
   return {
     name: "Nieuw recept", flourTotal: 0, loafCount: 1,
-    category: "Overig", leavening: "gist", description: "", favorite: false, shared: false,
+    category: "Overig", leavening: "gist", description: "", favorite: false, shared: false, photoUrl: "",
     lastUsedAt: Date.now(),
     flours: [{ name: "", percentage: 0, unit: "g", _new: true }],
     additions: [],
@@ -352,7 +366,7 @@ function createBlankRecipe() {
   };
 }
 function cloneRecipe(recipe) {
-  return { ...structuredClone(recipe), name: `${recipe.name} kopie`, favorite: false, shared: false, lastUsedAt: Date.now() };
+  return { ...structuredClone(recipe), name: `${recipe.name} kopie`, favorite: false, shared: false, photoUrl: "", lastUsedAt: Date.now() };
 }
 
 // Bloem: gebruiker vult percentage in, grammen berekend t.o.v. flourTotal
@@ -657,6 +671,7 @@ function renderMyRecipes() {
           : `<div class="tile-grid">
               ${filtered.map((r) => `
                 <article class="recipe-tile">
+                  ${r.photoUrl ? `<img class="recipe-tile-photo" src="${esc(r.photoUrl)}" alt="${esc(r.name)}" loading="lazy" />` : ""}
                   <div class="recipe-tile-body">
                     <div class="recipe-tile-top">
                       <span class="recipe-tile-name">${esc(r.name)}</span>
@@ -698,6 +713,7 @@ function renderLibrary() {
 
       return `
       <article class="recipe-tile">
+        ${item.photoUrl ? `<img class="recipe-tile-photo" src="${esc(item.photoUrl)}" alt="${esc(item.name)}" loading="lazy" />` : ""}
         <div class="recipe-tile-body">
           <div class="recipe-tile-top">
             <span class="recipe-tile-name">${esc(item.name)}</span>
@@ -764,6 +780,14 @@ function renderWorkbench() {
         </div>
 
         <div class="workbench-body">
+          <div class="recipe-photo-panel">
+            ${recipe.photoUrl ? `<img class="recipe-photo" src="${esc(recipe.photoUrl)}" alt="${esc(recipe.name)}" />` : `<div class="recipe-photo-placeholder">Geen broodfoto</div>`}
+            <div class="recipe-photo-actions">
+              <label class="tool-button file-tool">${icon("plus")}Foto kiezen<input data-recipe-photo type="file" accept="image/jpeg,image/png,image/webp" /></label>
+              ${recipe.photoUrl ? `<button class="tool-button danger" data-remove-recipe-photo type="button">${icon("trash")}Verwijder foto</button>` : ""}
+            </div>
+          </div>
+
           <div class="recipe-header">
             <div>
               <label class="recipe-name-field">
@@ -997,6 +1021,30 @@ function bindEvents() {
     } else {
       state.saveMessage = "Foto uploaden mislukt — controleer of de avatars storage bucket bestaat in Supabase";
     }
+    render();
+  });
+
+  document.querySelector("[data-recipe-photo]")?.addEventListener("change", async (e) => {
+    const recipe = getSelectedRecipe();
+    const file = e.target.files?.[0];
+    if (!recipe || !file) return;
+    state.saveMessage = "Broodfoto uploaden..."; render();
+    const url = await uploadRecipePhoto(recipe, file);
+    if (url) {
+      recipe.photoUrl = url;
+      await saveRecipeToDB(recipe);
+      state.saveMessage = "Broodfoto opgeslagen";
+    } else {
+      state.saveMessage = "Broodfoto uploaden mislukt — controleer of de recipe-photos storage bucket bestaat";
+    }
+    render();
+  });
+
+  document.querySelector("[data-remove-recipe-photo]")?.addEventListener("click", async () => {
+    const recipe = getSelectedRecipe();
+    if (!recipe || !confirm("Broodfoto verwijderen?")) return;
+    recipe.photoUrl = "";
+    await saveRecipeToDB(recipe);
     render();
   });
 
