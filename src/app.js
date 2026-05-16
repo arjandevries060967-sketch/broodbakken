@@ -223,14 +223,14 @@ async function loadRecipesFromDB() {
     state.recipes = [];
     state.selectedRecipeId = "";
     state.categories = getCategoriesFromRecipes(state.recipes);
-    saveAutomaticBackup("auto");
+    await saveAutomaticBackup("auto");
     await loadServerBackups();
     return;
   }
   state.recipes = data.map(dbToLocal);
   state.selectedRecipeId = state.recipes[0]?.id || "";
   state.categories = getCategoriesFromRecipes(state.recipes);
-  saveAutomaticBackup("auto");
+  await saveAutomaticBackup("auto");
   await loadServerBackups();
 }
 
@@ -497,15 +497,20 @@ function readAutomaticBackups() {
 }
 
 function localBackupToPanel(backup) {
-  return {
-    id: backup.id,
-    createdAt: backup.createdAt,
-    reason: backup.reason || "auto",
-    recipeCount: backup.recipeCount || 0,
-    payload: backup.serialized ? JSON.parse(backup.serialized) : backup.payload,
-    checksum: backup.checksum || backupChecksum(backup.serialized || JSON.stringify(backup.payload || {})),
-    source: "lokaal",
-  };
+  try {
+    const payload = backup.serialized ? JSON.parse(backup.serialized) : backup.payload;
+    return {
+      id: backup.id || backup.createdAt || String(Date.now()),
+      createdAt: backup.createdAt || payload?.exportedAt || new Date().toISOString(),
+      reason: backup.reason || "auto",
+      recipeCount: backup.recipeCount ?? payload?.recipes?.length ?? 0,
+      payload,
+      checksum: backup.checksum || backupChecksum(backup.serialized || JSON.stringify(payload || {})),
+      source: "lokaal",
+    };
+  } catch {
+    return null;
+  }
 }
 
 function writeAutomaticBackups(backups) {
@@ -514,7 +519,7 @@ function writeAutomaticBackups(backups) {
 
 function getPanelBackups() {
   const server = state.backups || [];
-  const local = readAutomaticBackups().map(localBackupToPanel);
+  const local = readAutomaticBackups().map(localBackupToPanel).filter(Boolean);
   const seen = new Set();
   return [...server, ...local]
     .filter((backup) => {
