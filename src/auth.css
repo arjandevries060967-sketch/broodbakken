@@ -189,6 +189,23 @@
 .backup-item small { display: block; margin-top: 3px; color: var(--gist-groen); font-size: 0.78rem; font-weight: 800; }
 .backup-item svg { width: 17px; height: 17px; transform: rotate(180deg); color: var(--gist-groen); }
 .backup-panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.faq-panel { width: min(640px, 100%); }
+.faq-list { display: grid; gap: 8px; }
+.faq-item {
+  border: 1px solid var(--lijn); border-radius: 8px;
+  background: #fbf4e8; overflow: hidden;
+}
+.faq-item summary {
+  cursor: pointer; padding: 12px 14px; color: var(--oven-donker);
+  font-size: 0.9rem; font-weight: 900; list-style: none;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after { content: "+"; float: right; color: var(--gist-groen); font-size: 1rem; }
+.faq-item[open] summary::after { content: "-"; }
+.faq-item p {
+  margin: 0; padding: 0 14px 13px; color: var(--steen-grijs);
+  font-size: 0.86rem; line-height: 1.45;
+}
 .backup-reminder {
   position: fixed; left: 18px; right: 18px; bottom: 18px; z-index: 1190;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;

@@ -110,6 +110,7 @@ const state = {
   photoPreview: null,
   confirmDialog: null,
   backupPanelOpen: false,
+  faqPanelOpen: false,
   backups: [],
   backupSyncStatus: "",
   backupReminderDismissed: "",
@@ -134,6 +135,11 @@ document.addEventListener("keydown", (e) => {
   }
   if (state.backupPanelOpen) {
     state.backupPanelOpen = false;
+    render();
+    return;
+  }
+  if (state.faqPanelOpen) {
+    state.faqPanelOpen = false;
     render();
   }
 });
@@ -647,7 +653,7 @@ function daysSince(value) {
 }
 
 function shouldShowBackupReminder() {
-  if (!state.user || state.recipes.length === 0 || state.backupPanelOpen || state.confirmDialog) return false;
+  if (!state.user || state.recipes.length === 0 || state.backupPanelOpen || state.faqPanelOpen || state.confirmDialog) return false;
   if (state.backupReminderDismissed === todayValue()) return false;
   const backups = getPanelBackups();
   const latestManual = backups.find((backup) => backup.reason === "handmatig" && backup.source === "Supabase");
@@ -681,6 +687,19 @@ function makeSheet(rows) {
   return window.XLSX.utils.json_to_sheet(rows.length ? rows : [{ leeg: "Geen gegevens" }]);
 }
 
+const FAQ_ITEMS = [
+  ["Waar worden mijn recepten opgeslagen?", "Je recepten worden online opgeslagen in Supabase en zijn gekoppeld aan je account."],
+  ["Wat is automatisch back-uppen?", "De app maakt na wijzigingen een veiligheidskopie, zodat je minder snel werk kwijtraakt."],
+  ["Wat is handmatig back-uppen?", "Met Online backup maken zet je bewust een checkpoint vast. Dat is handig voor grote wijzigingen of voordat je recepten verwijdert."],
+  ["Hoe zet ik een backup terug?", "Ga naar Opties, kies Backup terugzetten en selecteer een datum. De recepten uit die backup worden toegevoegd aan je huidige recepten."],
+  ["Wat is het verschil tussen Excel en volledige backup?", "Excel is bedoeld om je recepten buiten de app te bekijken. De volledige JSON-backup is bedoeld om recepten terug te zetten."],
+  ["Hoe deel ik een recept?", "Gebruik de deelknop bij een recept. Daarna kan een andere gebruiker het recept in de Bibliotheek bekijken en kopiëren."],
+  ["Waarom is de bibliotheek leeg?", "Dan zijn er geen recepten van anderen gedeeld, of de bibliotheek kon niet laden. In dat laatste geval toont de app een foutmelding met opnieuw proberen."],
+  ["Hoe werken percentages en grammen?", "Bloem/meel is de basis. Vul je een percentage in, dan rekent de app grammen uit. Vul je grammen in bij meel, dan rekent de app het percentage terug."],
+  ["Hoe voeg ik een broodfoto toe?", "Open een recept en kies Broodfoto toevoegen. Je kunt direct een foto maken of een bestaande foto uit je bibliotheek kiezen."],
+  ["Wat gebeurt er als ik een recept verwijder?", "Het recept wordt uit je account verwijderd. Terughalen kan alleen via een eerder gemaakte backup."],
+];
+
 function renderBackupPanel() {
   if (!state.backupPanelOpen) return "";
   const backups = getPanelBackups();
@@ -709,6 +728,29 @@ function renderBackupPanel() {
           <button class="tool-button" data-make-auto-backup type="button">${icon("save")}Online backup maken</button>
           <button class="tool-button" data-download-json-backup type="button">${icon("save")}JSON downloaden</button>
           <label class="tool-button file-tool">${icon("plus")}JSON-bestand kiezen<input data-import-recipes type="file" accept="application/json,.json" /></label>
+        </div>
+      </section>
+    </div>`;
+}
+
+function renderFaqPanel() {
+  if (!state.faqPanelOpen) return "";
+  return `
+    <div class="confirm-backdrop" data-faq-backdrop role="dialog" aria-modal="true" aria-label="Veelgestelde vragen">
+      <section class="backup-panel faq-panel">
+        <div class="backup-panel-head">
+          <div>
+            <h3>Veelgestelde vragen</h3>
+            <p>Korte antwoorden op de belangrijkste vragen over recepten, backups en delen.</p>
+          </div>
+          <button class="icon-action" data-close-faq-panel type="button" aria-label="Sluit veelgestelde vragen">&times;</button>
+        </div>
+        <div class="faq-list">
+          ${FAQ_ITEMS.map(([question, answer]) => `
+            <details class="faq-item">
+              <summary>${esc(question)}</summary>
+              <p>${esc(answer)}</p>
+            </details>`).join("")}
         </div>
       </section>
     </div>`;
@@ -853,6 +895,7 @@ function renderTopbar(showBack = false, backLabel = "") {
             <button class="tool-button wide" data-export-excel type="button">${icon("save")}Excel-backup</button>
             <button class="tool-button wide" data-online-backup type="button">${icon("save")}Online backup maken</button>
             <button class="tool-button wide" data-open-backup-panel type="button">${icon("plus")}Backup terugzetten</button>
+            <button class="tool-button wide" data-open-faq-panel type="button">${icon("book")}Veelgestelde vragen</button>
           </div>
         </details>
         <button class="avatar-btn" data-screen="profile" title="Profiel">${avatarHtml}</button>
@@ -1377,7 +1420,7 @@ function render() {
   else if (state.screen === "workbench") root.innerHTML = renderWorkbench();
   else if (state.screen === "profile") root.innerHTML = renderProfile();
 
-  root.insertAdjacentHTML("beforeend", renderPhotoPreview() + renderBackupPanel() + renderConfirmDialog() + renderBackupReminder() + renderAppToast());
+  root.insertAdjacentHTML("beforeend", renderPhotoPreview() + renderBackupPanel() + renderFaqPanel() + renderConfirmDialog() + renderBackupReminder() + renderAppToast());
   bindEvents();
 }
 
@@ -1535,6 +1578,22 @@ function bindEvents() {
 
   document.querySelector("[data-open-backup-panel]")?.addEventListener("click", () => {
     state.backupPanelOpen = true;
+    render();
+  });
+
+  document.querySelector("[data-open-faq-panel]")?.addEventListener("click", () => {
+    state.faqPanelOpen = true;
+    render();
+  });
+
+  document.querySelector("[data-faq-backdrop]")?.addEventListener("click", (e) => {
+    if (e.target !== e.currentTarget) return;
+    state.faqPanelOpen = false;
+    render();
+  });
+
+  document.querySelector("[data-close-faq-panel]")?.addEventListener("click", () => {
+    state.faqPanelOpen = false;
     render();
   });
 
