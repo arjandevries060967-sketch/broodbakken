@@ -112,19 +112,34 @@ const root = document.querySelector("#root");
 let activeDictation = null;
 let autosaveTimer = null;
 
+function isPasswordRecoveryUrl() {
+  const params = new URLSearchParams(window.location.hash.replace("#", ""));
+  return params.get("type") === "recovery";
+}
+
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 async function initAuth() {
   const { data: { session } } = await db.auth.getSession();
   if (session?.user) {
     state.user = session.user;
-    await Promise.all([loadRecipesFromDB(), loadProfile()]);
+    if (isPasswordRecoveryUrl()) {
+      state.authView = "reset";
+    } else {
+      await Promise.all([loadRecipesFromDB(), loadProfile()]);
+    }
   }
   state.loading = false;
   render();
 
   db.auth.onAuthStateChange(async (event, session) => {
-    if (event === "SIGNED_IN" && session?.user) {
+    if (event === "PASSWORD_RECOVERY" && session?.user) {
       state.user = session.user;
+      state.authView = "reset";
+      state.saveMessage = "";
+      renderAuthScreen();
+    } else if (event === "SIGNED_IN" && session?.user) {
+      state.user = session.user;
+      if (state.authView === "reset") { renderAuthScreen(); return; }
       await Promise.all([loadRecipesFromDB(), loadProfile()]);
       render();
     } else if (event === "SIGNED_OUT") {
@@ -145,6 +160,15 @@ async function signIn(email, password) {
 }
 async function signUp(email, password) {
   const { error } = await db.auth.signUp({ email, password });
+  return error?.message || null;
+}
+async function requestPasswordReset(email) {
+  const redirectTo = window.location.origin + window.location.pathname;
+  const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo });
+  return error?.message || null;
+}
+async function updatePassword(password) {
+  const { error } = await db.auth.updateUser({ password });
   return error?.message || null;
 }
 async function signOut() { await db.auth.signOut(); }
@@ -456,6 +480,8 @@ function renderTopbar(showBack = false, backLabel = "") {
 // ─── Auth scherm ──────────────────────────────────────────────────────────────
 function renderAuthScreen() {
   const isLogin = state.authView === "login";
+  const isForgot = state.authView === "forgot";
+  const isReset = state.authView === "reset";
   root.innerHTML = `
     <div class="auth-shell">
       <div class="auth-card">
@@ -464,49 +490,86 @@ function renderAuthScreen() {
           <div><h1>Broodboek</h1></div>
         </div>
         <div class="auth-form-wrap">
-          <h2>${isLogin ? "Inloggen" : "Account aanmaken"}</h2>
+          <h2>${isForgot ? "Wachtwoord vergeten" : isReset ? "Nieuw wachtwoord" : isLogin ? "Inloggen" : "Account aanmaken"}</h2>
           ${state.saveMessage ? `<p class="auth-error">${esc(state.saveMessage)}</p>` : ""}
           <div class="auth-form">
-            <label><span>E-mailadres</span><input id="auth-email" type="email" placeholder="jouw@email.nl" autocomplete="email" /></label>
-            <label><span>Wachtwoord</span><input id="auth-password" type="password" placeholder="minimaal 6 tekens" autocomplete="${isLogin ? "current-password" : "new-password"}" /></label>
-            <button class="tool-button primary auth-submit" id="auth-submit">${isLogin ? "Inloggen" : "Account aanmaken"}</button>
+            ${isReset ? `
+              <label><span>Nieuw wachtwoord</span><input id="auth-password" type="password" placeholder="minimaal 6 tekens" autocomplete="new-password" /></label>
+              <label><span>Herhaal wachtwoord</span><input id="auth-password-repeat" type="password" placeholder="nog een keer" autocomplete="new-password" /></label>
+              <button class="tool-button primary auth-submit" id="auth-submit">Wachtwoord opslaan</button>
+            ` : `
+              <label><span>E-mailadres</span><input id="auth-email" type="email" placeholder="jouw@email.nl" autocomplete="email" /></label>
+              ${isForgot ? "" : `<label><span>Wachtwoord</span><input id="auth-password" type="password" placeholder="minimaal 6 tekens" autocomplete="${isLogin ? "current-password" : "new-password"}" /></label>`}
+              <button class="tool-button primary auth-submit" id="auth-submit">${isForgot ? "Herstellink sturen" : isLogin ? "Inloggen" : "Account aanmaken"}</button>
+            `}
           </div>
           <p class="auth-switch">
-            ${isLogin
-              ? `Nog geen account? <button class="auth-link" id="auth-toggle">Aanmaken</button>`
-              : `Al een account? <button class="auth-link" id="auth-toggle">Inloggen</button>`}
+            ${isReset
+              ? `Klaar? <button class="auth-link" id="auth-toggle">Naar inloggen</button>`
+              : isForgot
+                ? `Weet je je wachtwoord weer? <button class="auth-link" id="auth-toggle">Inloggen</button>`
+                : isLogin
+                  ? `Nog geen account? <button class="auth-link" id="auth-toggle">Aanmaken</button><br><button class="auth-link" id="auth-forgot">Wachtwoord vergeten?</button>`
+                  : `Al een account? <button class="auth-link" id="auth-toggle">Inloggen</button>`}
           </p>
         </div>
       </div>
     </div>`;
   bindAuthEvents();
 }
-
 function bindAuthEvents() {
-  document.getElementById("auth-toggle").addEventListener("click", () => {
+  document.getElementById("auth-toggle").addEventListener("click", async () => {
+    if (state.authView === "reset") await signOut();
     state.authView = state.authView === "login" ? "register" : "login";
     state.saveMessage = "";
     renderAuthScreen();
   });
+  document.getElementById("auth-forgot")?.addEventListener("click", () => {
+    state.authView = "forgot";
+    state.saveMessage = "";
+    renderAuthScreen();
+  });
   document.getElementById("auth-submit").addEventListener("click", async () => {
-    const email = document.getElementById("auth-email").value.trim();
-    const password = document.getElementById("auth-password").value;
-    if (!email || !password) { state.saveMessage = "Vul e-mailadres en wachtwoord in"; renderAuthScreen(); return; }
     const btn = document.getElementById("auth-submit");
     btn.disabled = true; btn.textContent = "Even wachten...";
-    let error;
-    if (state.authView === "login") {
-      error = await signIn(email, password);
-    } else {
-      error = await signUp(email, password);
-      if (!error) { state.saveMessage = "Account aangemaakt — controleer je e-mail en log daarna in."; state.authView = "login"; renderAuthScreen(); return; }
+
+    if (state.authView === "reset") {
+      const password = document.getElementById("auth-password").value;
+      const repeat = document.getElementById("auth-password-repeat").value;
+      if (!password || password.length < 6) { state.saveMessage = "Kies een wachtwoord van minimaal 6 tekens"; renderAuthScreen(); return; }
+      if (password !== repeat) { state.saveMessage = "De wachtwoorden zijn niet gelijk"; renderAuthScreen(); return; }
+      const error = await updatePassword(password);
+      if (error) { state.saveMessage = error; renderAuthScreen(); return; }
+      await signOut();
+      state.authView = "login";
+      state.saveMessage = "Wachtwoord aangepast — log opnieuw in.";
+      renderAuthScreen();
+      return;
     }
+
+    const email = document.getElementById("auth-email").value.trim();
+    if (!email) { state.saveMessage = "Vul je e-mailadres in"; renderAuthScreen(); return; }
+
+    if (state.authView === "forgot") {
+      const error = await requestPasswordReset(email);
+      state.authView = "login";
+      state.saveMessage = error || "Herstellink verstuurd — controleer je e-mail.";
+      renderAuthScreen();
+      return;
+    }
+
+    const password = document.getElementById("auth-password").value;
+    if (!password) { state.saveMessage = "Vul e-mailadres en wachtwoord in"; renderAuthScreen(); return; }
+    const error = state.authView === "login" ? await signIn(email, password) : await signUp(email, password);
+    if (!error && state.authView === "register") { state.saveMessage = "Account aangemaakt — controleer je e-mail en log daarna in."; state.authView = "login"; renderAuthScreen(); return; }
     if (error) { state.saveMessage = error; renderAuthScreen(); }
   });
-  document.getElementById("auth-email").addEventListener("keydown", (e) => { if (e.key === "Enter") document.getElementById("auth-password").focus(); });
-  document.getElementById("auth-password").addEventListener("keydown", (e) => { if (e.key === "Enter") document.getElementById("auth-submit").click(); });
+  document.getElementById("auth-email")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("auth-password")?.focus() || document.getElementById("auth-submit").click();
+  });
+  document.getElementById("auth-password")?.addEventListener("keydown", (e) => { if (e.key === "Enter") document.getElementById("auth-submit").click(); });
+  document.getElementById("auth-password-repeat")?.addEventListener("keydown", (e) => { if (e.key === "Enter") document.getElementById("auth-submit").click(); });
 }
-
 // ─── Profielpagina ────────────────────────────────────────────────────────────
 function renderProfile() {
   const avatarHtml = state.profile.avatar_url
@@ -851,7 +914,7 @@ function render() {
     root.innerHTML = `<div class="auth-shell"><p style="color:var(--gist-groen);font-weight:700">Laden...</p></div>`;
     return;
   }
-  if (!state.user) { renderAuthScreen(); return; }
+  if (!state.user || state.authView === "reset") { renderAuthScreen(); return; }
 
   if (state.screen === "myrecipes") root.innerHTML = renderMyRecipes();
   else if (state.screen === "library") root.innerHTML = renderLibrary();
