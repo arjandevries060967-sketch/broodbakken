@@ -447,6 +447,84 @@ function fmtDate(s) {
   return new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short", year: "numeric" }).format(new Date(y, m - 1, d));
 }
 
+function downloadJsonBackup() {
+  const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), app: "Broodboek", recipes: state.recipes }, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `broodboek-volledige-backup-${todayValue()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function makeSheet(rows) {
+  return window.XLSX.utils.json_to_sheet(rows.length ? rows : [{ leeg: "Geen gegevens" }]);
+}
+
+function downloadExcelBackup() {
+  if (!window.XLSX) {
+    state.saveMessage = "Excel-backup niet geladen. Controleer je internetverbinding en probeer opnieuw.";
+    render();
+    return;
+  }
+
+  const recipes = state.recipes.map((recipe) => ({
+    Recept: recipe.name || "",
+    Categorie: recipe.category || "",
+    Rijsmiddel: recipe.leavening || "",
+    Favoriet: recipe.favorite ? "Ja" : "Nee",
+    Gedeeld: recipe.shared ? "Ja" : "Nee",
+    "Bloem totaal (g)": recipe.flourTotal || 0,
+    "Deeg totaal (g)": Math.round(getTotalDoughWeight(recipe)),
+    "Hydratatie (%)": Math.round(getHydration(recipe) * 1000) / 10,
+    "Aantal broden": recipe.loafCount || 1,
+    Beschrijving: recipe.description || "",
+    Werkwijze: recipe.method || "",
+  }));
+
+  const flours = state.recipes.flatMap((recipe) => calculateFlours(recipe)
+    .filter((item) => item.name || item.percentage || item.amount)
+    .map((item) => ({
+      Recept: recipe.name || "",
+      Meelsoort: item.name || "",
+      "Percentage (%)": item.percentage || 0,
+      Hoeveelheid: Math.round((item.amount || 0) * 10) / 10,
+      Eenheid: item.unit || "g",
+    })));
+
+  const additions = state.recipes.flatMap((recipe) => calculateAdditions(recipe)
+    .filter((item) => item.name || item.percentage || item.amount)
+    .map((item) => ({
+      Recept: recipe.name || "",
+      Ingredient: item.name || "",
+      "Percentage (%)": item.percentage || 0,
+      Hoeveelheid: Math.round((item.amount || 0) * 10) / 10,
+      Eenheid: item.unit || "g",
+    })));
+
+  const notes = state.recipes.flatMap((recipe) => (recipe.notes || []).map((note) => ({
+    Recept: recipe.name || "",
+    Datum: note.date || "",
+    Beoordeling: ratingLabel(note.rating),
+    "Oven (C)": note.ovenTemp || "",
+    Notitie: note.text || "",
+    "Snapshot bloem totaal (g)": note.snapshot?.flourTotal || "",
+    "Snapshot deeg totaal (g)": note.snapshot?.doughWeight || "",
+  })));
+
+  const photos = state.recipes
+    .filter((recipe) => recipe.photoUrl)
+    .map((recipe) => ({ Recept: recipe.name || "", Foto: recipe.photoUrl }));
+
+  const wb = window.XLSX.utils.book_new();
+  window.XLSX.utils.book_append_sheet(wb, makeSheet(recipes), "Recepten");
+  window.XLSX.utils.book_append_sheet(wb, makeSheet(flours), "Meelsoorten");
+  window.XLSX.utils.book_append_sheet(wb, makeSheet(additions), "Ingredienten");
+  window.XLSX.utils.book_append_sheet(wb, makeSheet(notes), "Logboek");
+  window.XLSX.utils.book_append_sheet(wb, makeSheet(photos), "Fotos");
+  window.XLSX.writeFile(wb, `mijn-broodboek-backup-${todayValue()}.xlsx`);
+}
+
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function icon(name) {
   const p = {
@@ -780,7 +858,8 @@ function renderWorkbench() {
               <summary>Meer opties</summary>
               <div class="more-options-list">
                 <button class="tool-button wide" data-save-as type="button">${icon("save")}Opslaan als kopie</button>
-                <button class="tool-button wide" data-export-recipes type="button">${icon("save")}Export</button>
+                <button class="tool-button wide" data-export-excel type="button">${icon("save")}Excel-backup</button>
+                <button class="tool-button wide" data-export-recipes type="button">${icon("save")}Volledige backup</button>
                 <label class="tool-button wide file-tool">${icon("plus")}Import<input data-import-recipes type="file" accept="application/json,.json" /></label>
                 <button class="tool-button danger wide" data-delete-recipe type="button">${icon("trash")}Verwijder recept</button>
               </div>
@@ -1251,12 +1330,9 @@ function bindEvents() {
     }
   });
 
-  document.querySelector("[data-export-recipes]")?.addEventListener("click", () => {
-    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), app: "Broodboek", recipes: state.recipes }, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `broodboek-${todayValue()}.json`; a.click();
-    URL.revokeObjectURL(url);
-  });
+  document.querySelector("[data-export-excel]")?.addEventListener("click", downloadExcelBackup);
+
+  document.querySelector("[data-export-recipes]")?.addEventListener("click", downloadJsonBackup);
 
   document.querySelector("[data-import-recipes]")?.addEventListener("change", async (e) => {
     const file = e.target.files?.[0]; if (!file) return;
