@@ -517,11 +517,16 @@ function writeAutomaticBackups(backups) {
   try { localStorage.setItem(backupStorageKey(), JSON.stringify(backups.slice(0, 20))); } catch {}
 }
 
+function backupHasRecipes(backup) {
+  return Array.isArray(backup?.payload?.recipes) && backup.payload.recipes.length > 0;
+}
+
 function getPanelBackups() {
   const server = state.backups || [];
   const local = readAutomaticBackups().map(localBackupToPanel).filter(Boolean);
   const seen = new Set();
   return [...server, ...local]
+    .filter(backupHasRecipes)
     .filter((backup) => {
       const key = backup.checksum || backup.id;
       if (seen.has(key)) return false;
@@ -584,12 +589,14 @@ async function saveAutomaticBackup(reason = "auto") {
   const payload = createBackupPayload();
   const serialized = JSON.stringify(payload);
   const checksum = backupChecksum(serialized);
+  if (state.recipes.length === 0) return;
   const backups = getPanelBackups();
   if (backups[0]?.checksum === checksum || backups[0]?.serialized === serialized) {
     await saveServerBackup(payload, serialized, reason, checksum);
     return;
   }
-  backups.unshift({
+  const localBackups = readAutomaticBackups().filter((backup) => backup.checksum !== checksum && backup.serialized !== serialized);
+  localBackups.unshift({
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     createdAt: payload.exportedAt,
     reason,
@@ -597,7 +604,7 @@ async function saveAutomaticBackup(reason = "auto") {
     checksum,
     serialized,
   });
-  writeAutomaticBackups(backups);
+  writeAutomaticBackups(localBackups);
   await saveServerBackup(payload, serialized, reason, checksum);
 }
 
@@ -628,7 +635,7 @@ function makeSheet(rows) {
 
 function renderBackupPanel() {
   if (!state.backupPanelOpen) return "";
-  const backups = readAutomaticBackups();
+  const backups = getPanelBackups();
   return `
     <div class="confirm-backdrop" data-backup-backdrop role="dialog" aria-modal="true" aria-label="Backup terugzetten">
       <section class="backup-panel">
