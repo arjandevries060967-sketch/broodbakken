@@ -106,11 +106,19 @@ const state = {
   hiddenRecipes: new Set(), // verborgen bibliotheekitems (lokaal)
   libraryProfiles: {},     // profiel per userId
   recipeFilter: "alle",    // "alle" | "gist" | "zuurdesem" | "favoriet"
+  photoPreview: null,
 };
 
 const root = document.querySelector("#root");
 let activeDictation = null;
 let autosaveTimer = null;
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && state.photoPreview) {
+    state.photoPreview = null;
+    render();
+  }
+});
 
 function isPasswordRecoveryUrl() {
   const search = new URLSearchParams(window.location.search);
@@ -788,7 +796,7 @@ function renderWorkbench() {
               ${recipe.photoUrl ? `<img class="recipe-photo-thumb" src="${esc(recipe.photoUrl)}" alt="${esc(recipe.name)}" />` : ""}
             </summary>
             <div class="recipe-photo-content">
-              ${recipe.photoUrl ? `<img class="recipe-photo" src="${esc(recipe.photoUrl)}" alt="${esc(recipe.name)}" />` : `<div class="recipe-photo-placeholder">Nog geen broodfoto</div>`}
+              ${recipe.photoUrl ? `<button class="recipe-photo-button" data-open-photo-preview type="button" aria-label="Vergroot broodfoto"><img class="recipe-photo" src="${esc(recipe.photoUrl)}" alt="${esc(recipe.name)}" /></button>` : `<div class="recipe-photo-placeholder">Nog geen broodfoto</div>`}
               <div class="recipe-photo-actions">
                 <label class="tool-button file-tool">${icon("plus")}${recipe.photoUrl ? "Vervang foto" : "Foto kiezen"}<input data-recipe-photo type="file" accept="image/jpeg,image/png,image/webp" /></label>
                 ${recipe.photoUrl ? `<button class="tool-button danger" data-remove-recipe-photo type="button">${icon("trash")}Verwijder foto</button>` : ""}
@@ -959,6 +967,17 @@ function renderWorkbench() {
     </main>`;
 }
 
+function renderPhotoPreview() {
+  if (!state.photoPreview) return "";
+  return `
+    <div class="photo-lightbox" data-photo-lightbox role="dialog" aria-modal="true" aria-label="Broodfoto vergroot">
+      <div class="photo-lightbox-card">
+        <button class="photo-lightbox-close" data-close-photo-preview type="button" aria-label="Sluit foto">&times;</button>
+        <img src="${esc(state.photoPreview.url)}" alt="${esc(state.photoPreview.name)}" />
+      </div>
+    </div>`;
+}
+
 // ─── Hoofdrender ──────────────────────────────────────────────────────────────
 function render() {
   if (state.loading) {
@@ -972,6 +991,7 @@ function render() {
   else if (state.screen === "workbench") root.innerHTML = renderWorkbench();
   else if (state.screen === "profile") root.innerHTML = renderProfile();
 
+  root.insertAdjacentHTML("beforeend", renderPhotoPreview());
   bindEvents();
 }
 
@@ -1029,6 +1049,24 @@ function bindEvents() {
     } else {
       state.saveMessage = "Foto uploaden mislukt — controleer of de avatars storage bucket bestaat in Supabase";
     }
+    render();
+  });
+
+  document.querySelector("[data-open-photo-preview]")?.addEventListener("click", () => {
+    const recipe = getSelectedRecipe();
+    if (!recipe?.photoUrl) return;
+    state.photoPreview = { url: recipe.photoUrl, name: recipe.name };
+    render();
+  });
+
+  document.querySelector("[data-photo-lightbox]")?.addEventListener("click", (e) => {
+    if (e.target !== e.currentTarget) return;
+    state.photoPreview = null;
+    render();
+  });
+
+  document.querySelector("[data-close-photo-preview]")?.addEventListener("click", () => {
+    state.photoPreview = null;
     render();
   });
 

@@ -117,6 +117,35 @@
   font-size: 0.84rem; font-weight: 800; font-style: italic;
 }
 .recipe-photo-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.recipe-photo-button {
+  display: block; width: 100%; padding: 0; border: 0; border-radius: 7px;
+  background: transparent; cursor: zoom-in;
+}
+.recipe-photo-button:focus-visible {
+  outline: 3px solid rgba(122,63,36,0.28); outline-offset: 3px;
+}
+.photo-lightbox {
+  position: fixed; inset: 0; z-index: 1000;
+  display: grid; place-items: center; padding: 22px;
+  background: rgba(35, 24, 18, 0.76);
+}
+.photo-lightbox-card {
+  position: relative; display: grid; place-items: center;
+  width: min(1120px, 100%); max-height: calc(100vh - 44px);
+  padding: 14px; border: 1px solid rgba(255,250,241,0.24); border-radius: 10px;
+  background: var(--zout-wit); box-shadow: 0 24px 70px rgba(35,24,18,0.42);
+}
+.photo-lightbox-card img {
+  display: block; max-width: 100%; max-height: calc(100vh - 100px);
+  object-fit: contain; border-radius: 7px;
+}
+.photo-lightbox-close {
+  position: absolute; top: 10px; right: 10px; z-index: 1;
+  display: grid; place-items: center; width: 36px; height: 36px; padding: 0;
+  border: 1px solid var(--lijn); border-radius: 999px;
+  background: rgba(255,250,241,0.92); color: var(--oven-donker);
+  font-size: 1.4rem; line-height: 1;
+}
 
 /* ── Werkbench scherm ────────────────────────────────────────────────────── */
 .workbench-screen {
@@ -393,6 +422,9 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
   .recipe-photo-panel summary { min-height: 38px; padding: 7px 9px; }
   .recipe-photo-content { padding: 0 8px 8px; }
   .recipe-photo, .recipe-photo-placeholder { max-height: 160px; }
+  .photo-lightbox { padding: 12px; }
+  .photo-lightbox-card { padding: 10px; max-height: calc(100vh - 24px); }
+  .photo-lightbox-card img { max-height: calc(100vh - 72px); }
   .recipe-photo-actions { display: grid; grid-template-columns: 1fr; }
 
   .recipe-header { grid-template-columns: 1fr !important; gap: 12px !important; margin-bottom: 12px; }
