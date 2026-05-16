@@ -798,7 +798,7 @@ function renderWorkbench() {
             <div class="recipe-photo-content">
               ${recipe.photoUrl ? `<button class="recipe-photo-button" data-open-photo-preview type="button" aria-label="Vergroot broodfoto"><img class="recipe-photo" src="${esc(recipe.photoUrl)}" alt="${esc(recipe.name)}" /></button>` : `<div class="recipe-photo-placeholder">Nog geen broodfoto</div>`}
               <div class="recipe-photo-actions">
-                <label class="tool-button file-tool">${icon("plus")}${recipe.photoUrl ? "Vervang foto" : "Foto kiezen"}<input data-recipe-photo type="file" accept="image/jpeg,image/png,image/webp" /></label>
+                <label class="tool-button file-tool">${icon("plus")}${recipe.photoUrl ? "Vervang foto" : "Foto kiezen"}<input data-recipe-photo type="file" accept="image/*" capture="environment" /></label>
                 ${recipe.photoUrl ? `<button class="tool-button danger" data-remove-recipe-photo type="button">${icon("trash")}Verwijder foto</button>` : ""}
               </div>
             </div>
