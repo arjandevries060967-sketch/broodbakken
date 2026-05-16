@@ -860,7 +860,7 @@ function renderWorkbench() {
                 <button class="tool-button wide" data-save-as type="button">${icon("save")}Opslaan als kopie</button>
                 <button class="tool-button wide" data-export-excel type="button">${icon("save")}Excel-backup</button>
                 <button class="tool-button wide" data-export-recipes type="button">${icon("save")}Volledige backup</button>
-                <label class="tool-button wide file-tool">${icon("plus")}Import<input data-import-recipes type="file" accept="application/json,.json" /></label>
+                <label class="tool-button wide file-tool">${icon("plus")}Backup terugzetten<input data-import-recipes type="file" accept="application/json,.json" /></label>
                 <button class="tool-button danger wide" data-delete-recipe type="button">${icon("trash")}Verwijder recept</button>
               </div>
             </details>
@@ -1336,6 +1336,10 @@ function bindEvents() {
 
   document.querySelector("[data-import-recipes]")?.addEventListener("change", async (e) => {
     const file = e.target.files?.[0]; if (!file) return;
+    if (!confirm("Backup terugzetten? De recepten uit dit JSON-bestand worden toegevoegd aan je huidige recepten.")) {
+      e.target.value = "";
+      return;
+    }
     const reader = new FileReader();
     reader.addEventListener("load", async () => {
       try {
@@ -1348,9 +1352,9 @@ function bindEvents() {
         }
         state.selectedRecipeId = state.recipes[0]?.id || "";
         state.categories = getCategoriesFromRecipes(state.recipes);
-        state.saveMessage = "Import opgeslagen";
+        state.saveMessage = `Backup teruggezet: ${recipes.length} recept${recipes.length === 1 ? "" : "en"} toegevoegd`;
         render();
-      } catch { state.saveMessage = "Import mislukt"; render(); }
+      } catch { state.saveMessage = "Backup terugzetten mislukt"; render(); }
     });
     reader.readAsText(file);
   });
