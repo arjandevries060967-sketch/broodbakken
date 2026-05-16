@@ -109,6 +109,8 @@ const state = {
   photoPreview: null,
   confirmDialog: null,
   backupPanelOpen: false,
+  backups: [],
+  backupSyncStatus: "",
 };
 
 const root = document.querySelector("#root");
@@ -222,12 +224,14 @@ async function loadRecipesFromDB() {
     state.selectedRecipeId = "";
     state.categories = getCategoriesFromRecipes(state.recipes);
     saveAutomaticBackup("auto");
+    await loadServerBackups();
     return;
   }
   state.recipes = data.map(dbToLocal);
   state.selectedRecipeId = state.recipes[0]?.id || "";
   state.categories = getCategoriesFromRecipes(state.recipes);
   saveAutomaticBackup("auto");
+  await loadServerBackups();
 }
 
 async function seedInitialRecipes() {
@@ -478,6 +482,12 @@ function backupStorageKey() {
   return `broodboek:auto-backups:${state.user?.id || "anon"}`;
 }
 
+function backupChecksum(serialized) {
+  let hash = 0;
+  for (let i = 0; i < serialized.length; i += 1) hash = ((hash << 5) - hash + serialized.charCodeAt(i)) | 0;
+  return String(hash);
+}
+
 function readAutomaticBackups() {
   try {
     const raw = localStorage.getItem(backupStorageKey());
@@ -486,24 +496,104 @@ function readAutomaticBackups() {
   } catch { return []; }
 }
 
+function localBackupToPanel(backup) {
+  return {
+    id: backup.id,
+    createdAt: backup.createdAt,
+    reason: backup.reason || "auto",
+    recipeCount: backup.recipeCount || 0,
+    payload: backup.serialized ? JSON.parse(backup.serialized) : backup.payload,
+    checksum: backup.checksum || backupChecksum(backup.serialized || JSON.stringify(backup.payload || {})),
+    source: "lokaal",
+  };
+}
+
 function writeAutomaticBackups(backups) {
   try { localStorage.setItem(backupStorageKey(), JSON.stringify(backups.slice(0, 20))); } catch {}
 }
 
-function saveAutomaticBackup(reason = "auto") {
-  if (!state.user || state.loading) return;
+function getPanelBackups() {
+  const server = state.backups || [];
+  const local = readAutomaticBackups().map(localBackupToPanel);
+  const seen = new Set();
+  return [...server, ...local]
+    .filter((backup) => {
+      const key = backup.checksum || backup.id;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 20);
+}
+
+async function loadServerBackups() {
+  if (!state.user) return;
+  const { data, error } = await db
+    .from("recipe_backups")
+    .select("id, created_at, reason, recipe_count, payload, checksum")
+    .eq("user_id", state.user.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  if (error) {
+    state.backups = [];
+    state.backupSyncStatus = "Supabase-backups zijn nog niet ingericht";
+    return;
+  }
+  state.backups = (data || []).map((backup) => ({
+    id: backup.id,
+    createdAt: backup.created_at,
+    reason: backup.reason || "auto",
+    recipeCount: backup.recipe_count || 0,
+    payload: backup.payload,
+    checksum: backup.checksum || backupChecksum(JSON.stringify(backup.payload || {})),
+    source: "Supabase",
+  }));
+  state.backupSyncStatus = "";
+}
+
+async function saveServerBackup(payload, serialized, reason, checksum) {
+  if (!state.user) return;
+  if (state.backups[0]?.checksum === checksum) return;
+  const { error } = await db.from("recipe_backups").insert({
+    user_id: state.user.id,
+    reason,
+    recipe_count: state.recipes.length,
+    payload,
+    checksum,
+  });
+  if (error) { state.backupSyncStatus = "Supabase-backups zijn nog niet ingericht"; return; }
+  await loadServerBackups();
+  const { data: older } = await db
+    .from("recipe_backups")
+    .select("id")
+    .eq("user_id", state.user.id)
+    .order("created_at", { ascending: false })
+    .range(20, 200);
+  const extra = (older || []).map((backup) => backup.id);
+  if (extra.length) await db.from("recipe_backups").delete().in("id", extra);
+}
+
+async function saveAutomaticBackup(reason = "auto") {
+  if (!state.user) return;
   const payload = createBackupPayload();
   const serialized = JSON.stringify(payload);
-  const backups = readAutomaticBackups();
-  if (backups[0]?.serialized === serialized) return;
+  const checksum = backupChecksum(serialized);
+  const backups = getPanelBackups();
+  if (backups[0]?.checksum === checksum || backups[0]?.serialized === serialized) {
+    await saveServerBackup(payload, serialized, reason, checksum);
+    return;
+  }
   backups.unshift({
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     createdAt: payload.exportedAt,
     reason,
     recipeCount: state.recipes.length,
+    checksum,
     serialized,
   });
   writeAutomaticBackups(backups);
+  await saveServerBackup(payload, serialized, reason, checksum);
 }
 
 function formatBackupDate(value) {
@@ -533,7 +623,7 @@ function renderBackupPanel() {
         <div class="backup-panel-head">
           <div>
             <h3>Backup terugzetten</h3>
-            <p>Kies een automatische backup of zet een volledige JSON-backup terug.</p>
+            <p>Kies een Supabase-backup met datum, of zet een volledig JSON-bestand terug.</p>
           </div>
           <button class="icon-action" data-close-backup-panel type="button" aria-label="Sluit backupvenster">&times;</button>
         </div>
@@ -542,10 +632,11 @@ function renderBackupPanel() {
             <button class="backup-item" data-restore-stored-backup="${esc(backup.id)}" type="button">
               <span>
                 <strong>${esc(formatBackupDate(backup.createdAt))}</strong>
-                <small>${backup.recipeCount} recept${backup.recipeCount === 1 ? "" : "en"} · ${backup.reason === "handmatig" ? "handmatig" : "automatisch"}</small>
+                <small>${backup.recipeCount} recept${backup.recipeCount === 1 ? "" : "en"} · ${backup.source} · ${backup.reason === "handmatig" ? "handmatig" : "automatisch"}</small>
               </span>
               ${icon("arrowLeft")}
-            </button>`).join("") : `<p class="empty-state">Nog geen automatische backups op dit apparaat.</p>`}
+            </button>`).join("") : `<p class="empty-state">Nog geen backups gevonden. Maak eerst een backup of richt Supabase-backups in.</p>`}
+          ${state.backupSyncStatus ? `<p class="empty-state">${esc(state.backupSyncStatus)}</p>` : ""}
         </div>
         <div class="backup-panel-actions">
           <button class="tool-button" data-make-auto-backup type="button">${icon("save")}Backup nu maken</button>
@@ -1266,9 +1357,9 @@ async function restoreBackupFile(file) {
 }
 
 async function restoreStoredBackup(id) {
-  const backup = readAutomaticBackups().find((item) => item.id === id);
+  const backup = getPanelBackups().find((item) => item.id === id);
   if (!backup) throw new Error("Backup niet gevonden");
-  const payload = JSON.parse(backup.serialized);
+  const payload = backup.payload || JSON.parse(backup.serialized);
   const recipes = Array.isArray(payload) ? payload : payload.recipes;
   if (!Array.isArray(recipes)) throw new Error("Ongeldige backup");
   for (const r of recipes) {
@@ -1356,15 +1447,16 @@ function bindEvents() {
     render();
   });
 
-  document.querySelector("[data-make-auto-backup]")?.addEventListener("click", () => {
-    saveAutomaticBackup("handmatig");
+  document.querySelector("[data-make-auto-backup]")?.addEventListener("click", async () => {
+    await saveAutomaticBackup("handmatig");
+    await loadServerBackups();
     state.saveMessage = "Backup gemaakt";
     render();
   });
 
   document.querySelectorAll("[data-restore-stored-backup]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const backup = readAutomaticBackups().find((item) => item.id === btn.dataset.restoreStoredBackup);
+      const backup = getPanelBackups().find((item) => item.id === btn.dataset.restoreStoredBackup);
       if (!backup) return;
       openConfirmDialog({
         type: "restore-stored-backup",
