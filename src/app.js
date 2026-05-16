@@ -1282,6 +1282,11 @@ function renderConfirmDialog() {
     </div>`;
 }
 
+function renderAppToast() {
+  if (!state.saveMessage || state.loading || !state.user || state.authView === "reset") return "";
+  return `<div class="app-toast" role="status">${esc(state.saveMessage)}</div>`;
+}
+
 // ─── Hoofdrender ──────────────────────────────────────────────────────────────
 function render() {
   if (state.loading) {
@@ -1295,7 +1300,7 @@ function render() {
   else if (state.screen === "workbench") root.innerHTML = renderWorkbench();
   else if (state.screen === "profile") root.innerHTML = renderProfile();
 
-  root.insertAdjacentHTML("beforeend", renderPhotoPreview() + renderBackupPanel() + renderConfirmDialog());
+  root.insertAdjacentHTML("beforeend", renderPhotoPreview() + renderBackupPanel() + renderConfirmDialog() + renderAppToast());
   bindEvents();
 }
 
