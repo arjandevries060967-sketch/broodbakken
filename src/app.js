@@ -246,8 +246,8 @@ async function saveRecipeToDB(recipe) {
 }
 
 async function deleteRecipeFromDB(id) {
-  const { error } = await db.from("recipes").delete().eq("id", id).select("id");
-  return { ok: !error, error };
+  const { data, error } = await db.from("recipes").delete().eq("id", id).eq("user_id", state.user.id).select("id");
+  return { ok: !error && Array.isArray(data) && data.length > 0, error };
 }
 
 async function insertRecipeToDB(recipe) {
@@ -1072,21 +1072,20 @@ function renderPhotoPreview() {
 }
 
 function renderConfirmDialog() {
-  if (!state.confirmDialog) return "";
-  if (state.confirmDialog.type !== "delete-recipe") return "";
-  const recipe = state.recipes.find((r) => r.id === state.confirmDialog.recipeId);
-  const name = recipe?.name || "dit recept";
+  const dialog = state.confirmDialog;
+  if (!dialog) return "";
+  const isDanger = dialog.variant !== "primary";
   return `
-    <div class="confirm-backdrop" data-confirm-backdrop role="dialog" aria-modal="true" aria-label="Recept verwijderen">
+    <div class="confirm-backdrop" data-confirm-backdrop role="dialog" aria-modal="true" aria-label="${esc(dialog.title || "Bevestigen")}">
       <section class="confirm-card">
-        <div class="confirm-icon">${icon("trash")}</div>
+        <div class="confirm-icon ${isDanger ? "danger" : "primary"}">${icon(dialog.icon || "trash")}</div>
         <div class="confirm-copy">
-          <h3>Recept verwijderen?</h3>
-          <p>Je verwijdert <strong>${esc(name)}</strong> uit je Broodboek. Dit kun je alleen terughalen met een backup.</p>
+          <h3>${esc(dialog.title || "Weet je het zeker?")}</h3>
+          <p>${dialog.message || ""}</p>
         </div>
         <div class="confirm-actions">
-          <button class="tool-button" data-cancel-confirm type="button">Annuleren</button>
-          <button class="tool-button danger" data-confirm-delete-recipe type="button">Verwijderen</button>
+          <button class="tool-button" data-cancel-confirm type="button">${esc(dialog.cancelLabel || "Annuleren")}</button>
+          <button class="tool-button ${isDanger ? "danger" : "primary"}" data-confirm-action type="button">${esc(dialog.confirmLabel || "Doorgaan")}</button>
         </div>
       </section>
     </div>`;
@@ -1128,12 +1127,19 @@ function markUnsaved() {
 function openDeleteRecipeDialog(recipeId) {
   const recipe = state.recipes.find((r) => r.id === recipeId);
   if (!recipe) return;
-  if (state.recipes.length <= 1) {
-    state.saveMessage = "Je kunt het laatste recept niet verwijderen.";
-    render();
-    return;
-  }
-  state.confirmDialog = { type: "delete-recipe", recipeId };
+  state.confirmDialog = {
+    type: "delete-recipe",
+    recipeId,
+    icon: "trash",
+    title: "Recept verwijderen?",
+    message: `Je verwijdert <strong>${esc(recipe.name)}</strong> uit je Broodboek. Dit kun je alleen terughalen met een backup.`,
+    confirmLabel: "Verwijderen",
+  };
+  render();
+}
+
+function openConfirmDialog(dialog) {
+  state.confirmDialog = dialog;
   render();
 }
 
@@ -1143,7 +1149,7 @@ async function confirmDeleteRecipe(recipeId) {
   const result = await deleteRecipeFromDB(recipe.id);
   if (!result.ok) {
     state.confirmDialog = null;
-    state.saveMessage = `Verwijderen mislukt: ${result.error?.message || "onbekende fout"}`;
+    state.saveMessage = `Verwijderen mislukt: ${result.error?.message || "geen toestemming of recept niet gevonden"}`;
     render();
     return;
   }
@@ -1154,6 +1160,20 @@ async function confirmDeleteRecipe(recipeId) {
   state.confirmDialog = null;
   state.saveMessage = `"${recipe.name}" verwijderd`;
   render();
+}
+
+async function restoreBackupFile(file) {
+  const text = await file.text();
+  const imp = JSON.parse(text);
+  const recipes = Array.isArray(imp) ? imp : imp.recipes;
+  if (!Array.isArray(recipes) || recipes.length === 0) throw new Error("Geen recepten gevonden");
+  for (const r of recipes) {
+    const saved = await insertRecipeToDB(r);
+    if (saved) state.recipes.push(saved);
+  }
+  state.selectedRecipeId = state.recipes[0]?.id || "";
+  state.categories = getCategoriesFromRecipes(state.recipes);
+  state.saveMessage = `Backup teruggezet: ${recipes.length} recept${recipes.length === 1 ? "" : "en"} toegevoegd`;
 }
 
 // ─── Events ───────────────────────────────────────────────────────────────────
@@ -1233,12 +1253,16 @@ function bindEvents() {
     });
   });
 
-  document.querySelector("[data-remove-recipe-photo]")?.addEventListener("click", async () => {
+  document.querySelector("[data-remove-recipe-photo]")?.addEventListener("click", () => {
     const recipe = getSelectedRecipe();
-    if (!recipe || !confirm("Broodfoto verwijderen?")) return;
-    recipe.photoUrl = "";
-    await saveRecipeToDB(recipe);
-    render();
+    if (!recipe) return;
+    openConfirmDialog({
+      type: "remove-photo",
+      icon: "trash",
+      title: "Broodfoto verwijderen?",
+      message: "De foto wordt uit dit recept gehaald. Je kunt later weer een nieuwe foto toevoegen.",
+      confirmLabel: "Foto verwijderen",
+    });
   });
 
   document.querySelector("[data-confirm-backdrop]")?.addEventListener("click", (e) => {
@@ -1252,10 +1276,49 @@ function bindEvents() {
     render();
   });
 
-  document.querySelector("[data-confirm-delete-recipe]")?.addEventListener("click", async () => {
-    const recipeId = state.confirmDialog?.recipeId;
-    if (!recipeId) return;
-    await confirmDeleteRecipe(recipeId);
+  document.querySelector("[data-confirm-action]")?.addEventListener("click", async () => {
+    const dialog = state.confirmDialog;
+    if (!dialog) return;
+    if (dialog.type === "delete-recipe") {
+      await confirmDeleteRecipe(dialog.recipeId);
+      return;
+    }
+    if (dialog.type === "remove-photo") {
+      const recipe = getSelectedRecipe();
+      if (recipe) {
+        recipe.photoUrl = "";
+        await saveRecipeToDB(recipe);
+        state.saveMessage = "Broodfoto verwijderd";
+      }
+    }
+    if (dialog.type === "unpublish") {
+      const recipe = state.recipes.find((r) => r.id === dialog.recipeId);
+      if (recipe) {
+        recipe.shared = false;
+        await saveRecipeToDB(recipe);
+        state.library = state.library.filter((r) => r.id !== recipe.id);
+        state.saveMessage = `"${recipe.name}" privé gemaakt`;
+      }
+    }
+    if (dialog.type === "restore-backup") {
+      try {
+        await restoreBackupFile(dialog.file);
+      } catch {
+        state.saveMessage = "Backup terugzetten mislukt";
+      }
+      const input = document.querySelector("[data-import-recipes]");
+      if (input) input.value = "";
+    }
+    if (dialog.type === "delete-note") {
+      const recipe = getSelectedRecipe();
+      if (recipe?.notes?.[dialog.noteIndex]) {
+        recipe.notes.splice(dialog.noteIndex, 1);
+        await saveRecipeToDB(recipe);
+        state.saveMessage = "Logboekitem verwijderd";
+      }
+    }
+    state.confirmDialog = null;
+    render();
   });
 
   // Verberg recept uit bibliotheek
@@ -1375,14 +1438,17 @@ function bindEvents() {
   });
 
   document.querySelectorAll("[data-unpublish]").forEach((btn) => {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", () => {
       const recipe = state.recipes.find((r) => r.id === btn.dataset.unpublish);
       if (!recipe) return;
-      if (!confirm(`"${recipe.name}" privé maken?`)) return;
-      recipe.shared = false;
-      await saveRecipeToDB(recipe);
-      state.library = state.library.filter((r) => r.id !== recipe.id);
-      render();
+      openConfirmDialog({
+        type: "unpublish",
+        recipeId: recipe.id,
+        icon: "share",
+        title: "Recept privé maken?",
+        message: `<strong>${esc(recipe.name)}</strong> verdwijnt uit de gedeelde bibliotheek, maar blijft wel in jouw recepten staan.`,
+        confirmLabel: "Privé maken",
+      });
     });
   });
 
@@ -1409,29 +1475,17 @@ function bindEvents() {
 
   document.querySelector("[data-export-recipes]")?.addEventListener("click", downloadJsonBackup);
 
-  document.querySelector("[data-import-recipes]")?.addEventListener("change", async (e) => {
+  document.querySelector("[data-import-recipes]")?.addEventListener("change", (e) => {
     const file = e.target.files?.[0]; if (!file) return;
-    if (!confirm("Backup terugzetten? De recepten uit dit JSON-bestand worden toegevoegd aan je huidige recepten.")) {
-      e.target.value = "";
-      return;
-    }
-    const reader = new FileReader();
-    reader.addEventListener("load", async () => {
-      try {
-        const imp = JSON.parse(String(reader.result));
-        const recipes = Array.isArray(imp) ? imp : imp.recipes;
-        if (!Array.isArray(recipes) || recipes.length === 0) throw new Error();
-        for (const r of recipes) {
-          const saved = await insertRecipeToDB(r);
-          if (saved) state.recipes.push(saved);
-        }
-        state.selectedRecipeId = state.recipes[0]?.id || "";
-        state.categories = getCategoriesFromRecipes(state.recipes);
-        state.saveMessage = `Backup teruggezet: ${recipes.length} recept${recipes.length === 1 ? "" : "en"} toegevoegd`;
-        render();
-      } catch { state.saveMessage = "Backup terugzetten mislukt"; render(); }
+    openConfirmDialog({
+      type: "restore-backup",
+      file,
+      icon: "save",
+      title: "Backup terugzetten?",
+      message: "De recepten uit dit JSON-bestand worden toegevoegd aan je huidige recepten. Bestaande recepten blijven staan.",
+      confirmLabel: "Terugzetten",
+      variant: "primary",
     });
-    reader.readAsText(file);
   });
 
   document.querySelector("[data-delete-recipe]")?.addEventListener("click", () => {
@@ -1562,12 +1616,18 @@ function bindEvents() {
   });
 
   document.querySelectorAll("[data-delete-note]").forEach((btn) => {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", () => {
       const recipe = getSelectedRecipe();
       const idx = Number(btn.dataset.deleteNote);
-      if (!recipe.notes[idx] || !confirm("Logboekitem verwijderen?")) return;
-      recipe.notes.splice(idx, 1);
-      await saveRecipeToDB(recipe); render();
+      if (!recipe?.notes?.[idx]) return;
+      openConfirmDialog({
+        type: "delete-note",
+        noteIndex: idx,
+        icon: "trash",
+        title: "Logboekitem verwijderen?",
+        message: "Deze baknotitie wordt uit het recept gehaald.",
+        confirmLabel: "Verwijderen",
+      });
     });
   });
 
