@@ -318,6 +318,15 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
 .tile-section { margin-bottom: 24px; }
 .tile-section-title { margin: 0 0 10px; font-size: 0.85rem; color: var(--gist-groen); font-weight: 900; text-transform: uppercase; letter-spacing: 0.02em; }
 .library-author { display: flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--steen-grijs); font-size: 0.78rem; font-weight: 600; }
+.library-state {
+  display: grid; gap: 8px; max-width: 560px; padding: 18px;
+  border: 1px solid var(--lijn); border-radius: 10px; background: #fbf4e8;
+  color: var(--steen-grijs); line-height: 1.45;
+}
+.library-state strong { color: var(--oven-donker); font-family: Fraunces, Georgia, serif; font-size: 1.05rem; }
+.library-state span { font-size: 0.9rem; }
+.library-state.error { background: #f4e1d6; color: var(--oven-bruin); }
+.library-state .tool-button { justify-self: start; margin-top: 2px; }
 
 /* ── Auth scherm ─────────────────────────────────────────────────────────── */
 .auth-shell { display: grid; place-items: center; min-height: 100vh; padding: 20px; }

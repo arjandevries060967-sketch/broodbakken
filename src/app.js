@@ -101,6 +101,7 @@ const state = {
   saveMessage: "",
   library: [],
   libraryLoading: false,
+  libraryError: "",
   profile: { display_name: "", avatar_url: "" },
   profileSaving: false,
   hiddenRecipes: new Set(), // verborgen bibliotheekitems (lokaal)
@@ -191,6 +192,7 @@ async function initAuth() {
       state.recipes = [];
       state.selectedRecipeId = "";
       state.library = [];
+      state.libraryError = "";
       state.screen = "myrecipes";
       state.profile = { display_name: "", avatar_url: "" };
       render();
@@ -251,12 +253,21 @@ async function seedInitialRecipes() {
 
 async function loadLibrary() {
   state.libraryLoading = true;
+  state.libraryError = "";
   render();
-  const { data, error } = await db.from("recipes").select("*").eq("shared", true).order("updated_at", { ascending: false });
-  state.libraryLoading = false;
-  if (!error && data) state.library = data.map(dbToLocal);
-  await loadLibraryProfiles();
-  render();
+  try {
+    const { data, error } = await db.from("recipes").select("*").eq("shared", true).order("updated_at", { ascending: false });
+    if (error) throw error;
+    state.library = (data || []).map(dbToLocal);
+    await loadLibraryProfiles();
+  } catch (error) {
+    state.library = [];
+    state.libraryProfiles = {};
+    state.libraryError = error?.message || "Bibliotheek laden mislukt";
+  } finally {
+    state.libraryLoading = false;
+    render();
+  }
 }
 
 async function saveRecipeToDB(recipe) {
@@ -318,12 +329,12 @@ async function uploadRecipePhoto(recipe, file) {
 }
 
 async function loadLibraryProfiles() {
-  if (state.library.length === 0) return;
-  const userIds = [...new Set(state.library.map((r) => r.userId))];
-  const { data } = await db.from("profiles").select("id, display_name, avatar_url").in("id", userIds);
-  if (data) {
-    state.libraryProfiles = Object.fromEntries(data.map((p) => [p.id, p]));
-  }
+  if (state.library.length === 0) { state.libraryProfiles = {}; return; }
+  const userIds = [...new Set(state.library.map((r) => r.userId).filter(Boolean))];
+  if (userIds.length === 0) { state.libraryProfiles = {}; return; }
+  const { data, error } = await db.from("profiles").select("id, display_name, avatar_url").in("id", userIds);
+  if (error) throw error;
+  state.libraryProfiles = Object.fromEntries((data || []).map((p) => [p.id, p]));
 }
 
 
@@ -785,6 +796,7 @@ function icon(name) {
     share: '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>',
     logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
     copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+    refresh: '<path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/>',
     arrowLeft: '<path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/>',
     edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
   };
@@ -1038,9 +1050,10 @@ function renderMyRecipes() {
 // ─── Bibliotheek scherm ───────────────────────────────────────────────────────
 function renderLibrary() {
   const content = () => {
-    if (state.libraryLoading) return `<p class="empty-state">Bibliotheek laden...</p>`;
+    if (state.libraryLoading) return `<div class="library-state"><strong>Bibliotheek laden...</strong><span>We halen gedeelde recepten op uit Supabase.</span></div>`;
+    if (state.libraryError) return `<div class="library-state error"><strong>Bibliotheek laden mislukt</strong><span>${esc(state.libraryError)}</span><button class="tool-button" data-retry-library type="button">${icon("refresh")}Opnieuw proberen</button></div>`;
     const others = state.library.filter((r) => r.userId !== state.user.id && !state.hiddenRecipes.has(r.id));
-    if (others.length === 0) return `<p class="empty-state">Nog geen recepten van anderen gedeeld. Zodra iemand een recept deelt verschijnt het hier.</p>`;
+    if (others.length === 0) return `<div class="library-state"><strong>Geen gedeelde recepten</strong><span>Er zijn nu geen recepten van anderen zichtbaar. Zodra iemand een recept deelt verschijnt het hier.</span></div>`;
 
     const renderCard = (item) => {
       const profile = state.libraryProfiles[item.userId];
@@ -1690,6 +1703,8 @@ function bindEvents() {
       else render();
     });
   });
+
+  document.querySelector("[data-retry-library]")?.addEventListener("click", loadLibrary);
 
   document.querySelector("[data-go-back]")?.addEventListener("click", () => {
     state.screen = "myrecipes";
