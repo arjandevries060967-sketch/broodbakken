@@ -615,6 +615,13 @@ function downloadJsonBackup() {
   URL.revokeObjectURL(url);
 }
 
+async function makeOnlineBackup() {
+  await saveAutomaticBackup("handmatig");
+  await loadServerBackups();
+  state.saveMessage = state.backupSyncStatus ? "Online backup nog niet ingericht in Supabase" : "Online backup gelukt";
+  render();
+}
+
 function makeSheet(rows) {
   return window.XLSX.utils.json_to_sheet(rows.length ? rows : [{ leeg: "Geen gegevens" }]);
 }
@@ -644,7 +651,8 @@ function renderBackupPanel() {
           ${state.backupSyncStatus ? `<p class="empty-state">${esc(state.backupSyncStatus)}</p>` : ""}
         </div>
         <div class="backup-panel-actions">
-          <button class="tool-button" data-make-auto-backup type="button">${icon("save")}Backup nu maken</button>
+          <button class="tool-button" data-make-auto-backup type="button">${icon("save")}Online backup maken</button>
+          <button class="tool-button" data-download-json-backup type="button">${icon("save")}JSON downloaden</button>
           <label class="tool-button file-tool">${icon("plus")}JSON-bestand kiezen<input data-import-recipes type="file" accept="application/json,.json" /></label>
         </div>
       </section>
@@ -787,7 +795,7 @@ function renderTopbar(showBack = false, backLabel = "") {
           <summary>Opties</summary>
           <div class="more-options-list">
             <button class="tool-button wide" data-export-excel type="button">${icon("save")}Excel-backup</button>
-            <button class="tool-button wide" data-export-recipes type="button">${icon("save")}Volledige backup</button>
+            <button class="tool-button wide" data-online-backup type="button">${icon("save")}Online backup maken</button>
             <button class="tool-button wide" data-open-backup-panel type="button">${icon("plus")}Backup terugzetten</button>
           </div>
         </details>
@@ -1722,7 +1730,9 @@ function bindEvents() {
 
   document.querySelector("[data-export-excel]")?.addEventListener("click", downloadExcelBackup);
 
-  document.querySelector("[data-export-recipes]")?.addEventListener("click", downloadJsonBackup);
+  document.querySelector("[data-online-backup]")?.addEventListener("click", makeOnlineBackup);
+
+  document.querySelector("[data-download-json-backup]")?.addEventListener("click", downloadJsonBackup);
 
   document.querySelector("[data-import-recipes]")?.addEventListener("change", (e) => {
     const file = e.target.files?.[0]; if (!file) return;
