@@ -108,6 +108,7 @@ const state = {
   recipeFilter: "alle",    // "alle" | "gist" | "zuurdesem" | "favoriet"
   photoPreview: null,
   confirmDialog: null,
+  backupPanelOpen: false,
 };
 
 const root = document.querySelector("#root");
@@ -123,6 +124,11 @@ document.addEventListener("keydown", (e) => {
   }
   if (state.confirmDialog) {
     state.confirmDialog = null;
+    render();
+    return;
+  }
+  if (state.backupPanelOpen) {
+    state.backupPanelOpen = false;
     render();
   }
 });
@@ -211,10 +217,17 @@ async function signOut() { await db.auth.signOut(); }
 async function loadRecipesFromDB() {
   const { data, error } = await db.from("recipes").select("*").eq("user_id", state.user.id).order("created_at", { ascending: true });
   if (error) { state.saveMessage = "Fout bij laden"; return; }
-  if (data.length === 0) { await seedInitialRecipes(); return; }
+  if (data.length === 0) {
+    state.recipes = [];
+    state.selectedRecipeId = "";
+    state.categories = getCategoriesFromRecipes(state.recipes);
+    saveAutomaticBackup("auto");
+    return;
+  }
   state.recipes = data.map(dbToLocal);
   state.selectedRecipeId = state.recipes[0]?.id || "";
   state.categories = getCategoriesFromRecipes(state.recipes);
+  saveAutomaticBackup("auto");
 }
 
 async function seedInitialRecipes() {
@@ -224,6 +237,7 @@ async function seedInitialRecipes() {
     state.recipes = data.map(dbToLocal);
     state.selectedRecipeId = state.recipes[0]?.id || "";
     state.categories = getCategoriesFromRecipes(state.recipes);
+    saveAutomaticBackup("auto");
   }
 }
 
@@ -243,6 +257,7 @@ async function saveRecipeToDB(recipe) {
   state.saveMessage = error ? "Fout bij opslaan" : "Opgeslagen";
   const el = document.querySelector("[data-save-message]");
   if (el) el.textContent = state.saveMessage;
+  if (!error) saveAutomaticBackup("auto");
 }
 
 async function deleteRecipeFromDB(id) {
@@ -455,8 +470,48 @@ function fmtDate(s) {
   return new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short", year: "numeric" }).format(new Date(y, m - 1, d));
 }
 
+function createBackupPayload() {
+  return { exportedAt: new Date().toISOString(), app: "Broodboek", recipes: state.recipes };
+}
+
+function backupStorageKey() {
+  return `broodboek:auto-backups:${state.user?.id || "anon"}`;
+}
+
+function readAutomaticBackups() {
+  try {
+    const raw = localStorage.getItem(backupStorageKey());
+    const backups = raw ? JSON.parse(raw) : [];
+    return Array.isArray(backups) ? backups : [];
+  } catch { return []; }
+}
+
+function writeAutomaticBackups(backups) {
+  try { localStorage.setItem(backupStorageKey(), JSON.stringify(backups.slice(0, 20))); } catch {}
+}
+
+function saveAutomaticBackup(reason = "auto") {
+  if (!state.user || state.loading) return;
+  const payload = createBackupPayload();
+  const serialized = JSON.stringify(payload);
+  const backups = readAutomaticBackups();
+  if (backups[0]?.serialized === serialized) return;
+  backups.unshift({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    createdAt: payload.exportedAt,
+    reason,
+    recipeCount: state.recipes.length,
+    serialized,
+  });
+  writeAutomaticBackups(backups);
+}
+
+function formatBackupDate(value) {
+  return new Intl.DateTimeFormat("nl-NL", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
 function downloadJsonBackup() {
-  const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), app: "Broodboek", recipes: state.recipes }, null, 2)], { type: "application/json" });
+  saveAutomaticBackup("handmatig");
+  const blob = new Blob([JSON.stringify(createBackupPayload(), null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -467,6 +522,37 @@ function downloadJsonBackup() {
 
 function makeSheet(rows) {
   return window.XLSX.utils.json_to_sheet(rows.length ? rows : [{ leeg: "Geen gegevens" }]);
+}
+
+function renderBackupPanel() {
+  if (!state.backupPanelOpen) return "";
+  const backups = readAutomaticBackups();
+  return `
+    <div class="confirm-backdrop" data-backup-backdrop role="dialog" aria-modal="true" aria-label="Backup terugzetten">
+      <section class="backup-panel">
+        <div class="backup-panel-head">
+          <div>
+            <h3>Backup terugzetten</h3>
+            <p>Kies een automatische backup of zet een volledige JSON-backup terug.</p>
+          </div>
+          <button class="icon-action" data-close-backup-panel type="button" aria-label="Sluit backupvenster">&times;</button>
+        </div>
+        <div class="backup-list">
+          ${backups.length ? backups.map((backup) => `
+            <button class="backup-item" data-restore-stored-backup="${esc(backup.id)}" type="button">
+              <span>
+                <strong>${esc(formatBackupDate(backup.createdAt))}</strong>
+                <small>${backup.recipeCount} recept${backup.recipeCount === 1 ? "" : "en"} · ${backup.reason === "handmatig" ? "handmatig" : "automatisch"}</small>
+              </span>
+              ${icon("arrowLeft")}
+            </button>`).join("") : `<p class="empty-state">Nog geen automatische backups op dit apparaat.</p>`}
+        </div>
+        <div class="backup-panel-actions">
+          <button class="tool-button" data-make-auto-backup type="button">${icon("save")}Backup nu maken</button>
+          <label class="tool-button file-tool">${icon("plus")}JSON-bestand kiezen<input data-import-recipes type="file" accept="application/json,.json" /></label>
+        </div>
+      </section>
+    </div>`;
 }
 
 function downloadExcelBackup() {
@@ -531,6 +617,7 @@ function downloadExcelBackup() {
   window.XLSX.utils.book_append_sheet(wb, makeSheet(notes), "Logboek");
   window.XLSX.utils.book_append_sheet(wb, makeSheet(photos), "Fotos");
   window.XLSX.writeFile(wb, `mijn-broodboek-backup-${todayValue()}.xlsx`);
+  saveAutomaticBackup("handmatig");
 }
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -605,7 +692,7 @@ function renderTopbar(showBack = false, backLabel = "") {
           <div class="more-options-list">
             <button class="tool-button wide" data-export-excel type="button">${icon("save")}Excel-backup</button>
             <button class="tool-button wide" data-export-recipes type="button">${icon("save")}Volledige backup</button>
-            <label class="tool-button wide file-tool">${icon("plus")}Backup terugzetten<input data-import-recipes type="file" accept="application/json,.json" /></label>
+            <button class="tool-button wide" data-open-backup-panel type="button">${icon("plus")}Backup terugzetten</button>
           </div>
         </details>
         <button class="avatar-btn" data-screen="profile" title="Profiel">${avatarHtml}</button>
@@ -1104,7 +1191,7 @@ function render() {
   else if (state.screen === "workbench") root.innerHTML = renderWorkbench();
   else if (state.screen === "profile") root.innerHTML = renderProfile();
 
-  root.insertAdjacentHTML("beforeend", renderPhotoPreview() + renderConfirmDialog());
+  root.insertAdjacentHTML("beforeend", renderPhotoPreview() + renderBackupPanel() + renderConfirmDialog());
   bindEvents();
 }
 
@@ -1159,6 +1246,7 @@ async function confirmDeleteRecipe(recipeId) {
   state.screen = "myrecipes";
   state.confirmDialog = null;
   state.saveMessage = `"${recipe.name}" verwijderd`;
+  saveAutomaticBackup("auto");
   render();
 }
 
@@ -1174,6 +1262,23 @@ async function restoreBackupFile(file) {
   state.selectedRecipeId = state.recipes[0]?.id || "";
   state.categories = getCategoriesFromRecipes(state.recipes);
   state.saveMessage = `Backup teruggezet: ${recipes.length} recept${recipes.length === 1 ? "" : "en"} toegevoegd`;
+  saveAutomaticBackup("auto");
+}
+
+async function restoreStoredBackup(id) {
+  const backup = readAutomaticBackups().find((item) => item.id === id);
+  if (!backup) throw new Error("Backup niet gevonden");
+  const payload = JSON.parse(backup.serialized);
+  const recipes = Array.isArray(payload) ? payload : payload.recipes;
+  if (!Array.isArray(recipes)) throw new Error("Ongeldige backup");
+  for (const r of recipes) {
+    const saved = await insertRecipeToDB(r);
+    if (saved) state.recipes.push(saved);
+  }
+  state.selectedRecipeId = state.recipes[0]?.id || "";
+  state.categories = getCategoriesFromRecipes(state.recipes);
+  state.saveMessage = `Backup van ${formatBackupDate(backup.createdAt)} teruggezet`;
+  saveAutomaticBackup("auto");
 }
 
 // ─── Events ───────────────────────────────────────────────────────────────────
@@ -1233,6 +1338,44 @@ function bindEvents() {
   document.querySelector("[data-close-photo-preview]")?.addEventListener("click", () => {
     state.photoPreview = null;
     render();
+  });
+
+  document.querySelector("[data-open-backup-panel]")?.addEventListener("click", () => {
+    state.backupPanelOpen = true;
+    render();
+  });
+
+  document.querySelector("[data-backup-backdrop]")?.addEventListener("click", (e) => {
+    if (e.target !== e.currentTarget) return;
+    state.backupPanelOpen = false;
+    render();
+  });
+
+  document.querySelector("[data-close-backup-panel]")?.addEventListener("click", () => {
+    state.backupPanelOpen = false;
+    render();
+  });
+
+  document.querySelector("[data-make-auto-backup]")?.addEventListener("click", () => {
+    saveAutomaticBackup("handmatig");
+    state.saveMessage = "Backup gemaakt";
+    render();
+  });
+
+  document.querySelectorAll("[data-restore-stored-backup]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const backup = readAutomaticBackups().find((item) => item.id === btn.dataset.restoreStoredBackup);
+      if (!backup) return;
+      openConfirmDialog({
+        type: "restore-stored-backup",
+        backupId: backup.id,
+        icon: "save",
+        title: "Backup terugzetten?",
+        message: `Je zet de backup van <strong>${esc(formatBackupDate(backup.createdAt))}</strong> terug. De recepten uit deze backup worden toegevoegd aan je huidige recepten.`,
+        confirmLabel: "Terugzetten",
+        variant: "primary",
+      });
+    });
   });
 
   document.querySelectorAll("[data-recipe-photo]").forEach((input) => {
@@ -1308,6 +1451,15 @@ function bindEvents() {
       }
       const input = document.querySelector("[data-import-recipes]");
       if (input) input.value = "";
+      state.backupPanelOpen = false;
+    }
+    if (dialog.type === "restore-stored-backup") {
+      try {
+        await restoreStoredBackup(dialog.backupId);
+      } catch {
+        state.saveMessage = "Backup terugzetten mislukt";
+      }
+      state.backupPanelOpen = false;
     }
     if (dialog.type === "delete-note") {
       const recipe = getSelectedRecipe();
