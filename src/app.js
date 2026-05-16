@@ -268,12 +268,14 @@ async function uploadAvatar(file) {
 }
 
 async function uploadRecipePhoto(recipe, file) {
+  if (!file.type.startsWith("image/")) return { error: "Kies een afbeeldingbestand" };
+  if (file.size > 10 * 1024 * 1024) return { error: "Foto is groter dan 10 MB" };
   const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
   const path = `${state.user.id}/${recipe.id}/brood.${ext}`;
-  const { error } = await db.storage.from("recipe-photos").upload(path, file, { upsert: true });
-  if (error) return null;
+  const { error } = await db.storage.from("recipe-photos").upload(path, file, { upsert: true, contentType: file.type });
+  if (error) return { error: error.message };
   const { data } = db.storage.from("recipe-photos").getPublicUrl(path);
-  return data.publicUrl;
+  return { url: `${data.publicUrl}?v=${Date.now()}` };
 }
 
 async function loadLibraryProfiles() {
@@ -780,13 +782,19 @@ function renderWorkbench() {
         </div>
 
         <div class="workbench-body">
-          <div class="recipe-photo-panel">
-            ${recipe.photoUrl ? `<img class="recipe-photo" src="${esc(recipe.photoUrl)}" alt="${esc(recipe.name)}" />` : `<div class="recipe-photo-placeholder">Geen broodfoto</div>`}
-            <div class="recipe-photo-actions">
-              <label class="tool-button file-tool">${icon("plus")}Foto kiezen<input data-recipe-photo type="file" accept="image/jpeg,image/png,image/webp" /></label>
-              ${recipe.photoUrl ? `<button class="tool-button danger" data-remove-recipe-photo type="button">${icon("trash")}Verwijder foto</button>` : ""}
+          <details class="recipe-photo-panel" ${recipe.photoUrl ? "open" : ""}>
+            <summary>
+              <span>${recipe.photoUrl ? "Broodfoto" : "Broodfoto toevoegen"}</span>
+              ${recipe.photoUrl ? `<img class="recipe-photo-thumb" src="${esc(recipe.photoUrl)}" alt="${esc(recipe.name)}" />` : ""}
+            </summary>
+            <div class="recipe-photo-content">
+              ${recipe.photoUrl ? `<img class="recipe-photo" src="${esc(recipe.photoUrl)}" alt="${esc(recipe.name)}" />` : `<div class="recipe-photo-placeholder">Nog geen broodfoto</div>`}
+              <div class="recipe-photo-actions">
+                <label class="tool-button file-tool">${icon("plus")}${recipe.photoUrl ? "Vervang foto" : "Foto kiezen"}<input data-recipe-photo type="file" accept="image/jpeg,image/png,image/webp" /></label>
+                ${recipe.photoUrl ? `<button class="tool-button danger" data-remove-recipe-photo type="button">${icon("trash")}Verwijder foto</button>` : ""}
+              </div>
             </div>
-          </div>
+          </details>
 
           <div class="recipe-header">
             <div>
@@ -1029,13 +1037,13 @@ function bindEvents() {
     const file = e.target.files?.[0];
     if (!recipe || !file) return;
     state.saveMessage = "Broodfoto uploaden..."; render();
-    const url = await uploadRecipePhoto(recipe, file);
-    if (url) {
-      recipe.photoUrl = url;
+    const result = await uploadRecipePhoto(recipe, file);
+    if (result.url) {
+      recipe.photoUrl = result.url;
       await saveRecipeToDB(recipe);
       state.saveMessage = "Broodfoto opgeslagen";
     } else {
-      state.saveMessage = "Broodfoto uploaden mislukt — controleer of de recipe-photos storage bucket bestaat";
+      state.saveMessage = `Broodfoto uploaden mislukt: ${result.error || "onbekende fout"}`;
     }
     render();
   });

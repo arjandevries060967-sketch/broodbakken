@@ -90,18 +90,28 @@
 
 /* ── Receptfoto ──────────────────────────────────────────────────────────── */
 .recipe-photo-panel {
-  display: grid; gap: 10px; margin-bottom: 16px;
-  padding: 10px; border: 1px solid var(--lijn); border-radius: var(--radius);
-  background: var(--meel);
+  margin-bottom: 12px; border: 1px solid var(--lijn); border-radius: var(--radius);
+  background: var(--meel); overflow: hidden;
 }
+.recipe-photo-panel summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  min-height: 42px; padding: 8px 10px; cursor: pointer;
+  color: var(--oven-donker); font-size: 0.86rem; font-weight: 900;
+  list-style: none;
+}
+.recipe-photo-panel summary::-webkit-details-marker { display: none; }
+.recipe-photo-panel summary::after { content: "+"; color: var(--oven-bruin); font-size: 1.1rem; }
+.recipe-photo-panel[open] summary::after { content: "–"; }
+.recipe-photo-thumb { width: 42px; height: 34px; object-fit: cover; border-radius: 5px; border: 1px solid var(--lijn); margin-left: auto; }
+.recipe-photo-content { display: grid; gap: 10px; padding: 0 10px 10px; }
 .recipe-photo, .recipe-photo-placeholder {
-  width: 100%; max-height: 280px; aspect-ratio: 16 / 9;
+  width: 100%; max-height: 220px; aspect-ratio: 16 / 9;
   border-radius: 7px; border: 1px solid var(--lijn);
   background: #fbf4e8; object-fit: cover;
 }
 .recipe-photo-placeholder {
   display: grid; place-items: center; color: var(--steen-grijs);
-  font-size: 0.86rem; font-weight: 800; font-style: italic;
+  font-size: 0.84rem; font-weight: 800; font-style: italic;
 }
 .recipe-photo-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -376,8 +386,10 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
   .more-options { min-width: 0; }
   .more-options-list { right: 0; left: auto; min-width: min(230px, calc(100vw - 24px)); }
   .workbench-body { padding: 12px !important; }
-  .recipe-photo-panel { margin-bottom: 12px; padding: 8px; }
-  .recipe-photo, .recipe-photo-placeholder { max-height: 190px; }
+  .recipe-photo-panel { margin-bottom: 10px; }
+  .recipe-photo-panel summary { min-height: 38px; padding: 7px 9px; }
+  .recipe-photo-content { padding: 0 8px 8px; }
+  .recipe-photo, .recipe-photo-placeholder { max-height: 160px; }
   .recipe-photo-actions { display: grid; grid-template-columns: 1fr; }
 
   .recipe-header { grid-template-columns: 1fr !important; gap: 12px !important; margin-bottom: 12px; }
