@@ -20,7 +20,7 @@
 
 .nav-btn {
   display: inline-flex; align-items: center; gap: 6px;
-  min-height: 44px; padding: 9px 18px;
+  min-height: 40px; padding: 8px 16px;
   border: 1px solid transparent; border-radius: 8px;
   background: transparent; color: var(--steen-grijs);
   font: inherit; font-size: 1rem; font-weight: 900; cursor: pointer;
@@ -38,7 +38,7 @@
 }
 
 /* ── Topbar uitbreidingen ────────────────────────────────────────────────── */
-.topbar h1 { font-size: clamp(2rem, 5vw, 4.2rem); }
+.topbar h1 { font-size: clamp(1.85rem, 4.6vw, 3.7rem); }
 .topbar-user {
   display: flex; align-items: center; justify-content: flex-end; gap: 10px;
   grid-column: 2; grid-row: 1; margin-left: auto;
