@@ -228,6 +228,25 @@
 }
 
 
+.notes-screen {
+  display: grid; gap: 14px; padding: 18px;
+  border: 1px solid var(--lijn); border-radius: var(--radius);
+  background: var(--zout-wit); box-shadow: var(--schaduw);
+}
+.notes-header { align-items: start; }
+.notes-header p { margin: 4px 0 0; color: var(--steen-grijs); font-size: 0.9rem; line-height: 1.45; }
+.general-notes-field { display: grid; gap: 8px; }
+.general-notes-field > span {
+  color: var(--gist-groen); font-size: 0.82rem; font-weight: 900; text-transform: uppercase;
+}
+.general-notes-field textarea {
+  width: 100%; min-height: min(56vh, 520px); resize: vertical;
+  border: 1px solid var(--lijn); border-radius: 8px;
+  background: #fbf4e8; color: var(--oven-donker);
+  padding: 14px; font: inherit; line-height: 1.55;
+}
+.general-notes-field textarea:focus { outline: 2px solid rgba(111,127,77,0.22); border-color: rgba(111,127,77,0.5); }
+
 /* ── Werkbench scherm ────────────────────────────────────────────────────── */
 .workbench-screen {
   border: 1px solid var(--lijn); border-radius: var(--radius);
@@ -698,4 +717,9 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
   .metric-row { grid-template-columns: 1fr !important; }
   tr { grid-template-columns: minmax(0, 1fr) minmax(86px, 0.8fr) 36px !important; }
   .tool-button { font-size: 0.78rem; }
+}
+
+@media (max-width: 600px) {
+  .main-nav:not(:has([data-go-back])) { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  .main-nav:has([data-go-back]) { grid-template-columns: 1fr !important; }
 }

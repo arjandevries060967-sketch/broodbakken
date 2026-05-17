@@ -93,7 +93,7 @@ const state = {
   user: null,
   loading: true,
   authView: "login",
-  screen: "myrecipes",      // "myrecipes" | "workbench" | "library" | "profile"
+  screen: "myrecipes",      // "myrecipes" | "workbench" | "library" | "notes" | "profile"
   recipes: [],
   selectedRecipeId: "",
   activeTab: "ingredients",
@@ -102,6 +102,9 @@ const state = {
   library: [],
   libraryLoading: false,
   libraryError: "",
+  generalNotes: "",
+  generalNotesSaved: "",
+  generalNotesError: "",
   profile: { display_name: "", avatar_url: "" },
   profileSaving: false,
   hiddenRecipes: new Set(), // verborgen bibliotheekitems (lokaal)
@@ -119,6 +122,7 @@ const state = {
 const root = document.querySelector("#root");
 let activeDictation = null;
 let autosaveTimer = null;
+let notesSaveTimer = null;
 const BACKUP_REMINDER_DAYS = 7;
 
 document.addEventListener("keydown", (e) => {
@@ -175,7 +179,7 @@ async function initAuth() {
     if (isPasswordRecoveryUrl()) {
       state.authView = "reset";
     } else {
-      await Promise.all([loadRecipesFromDB(), loadProfile()]);
+      await Promise.all([loadRecipesFromDB(), loadProfile(), loadGeneralNotes()]);
     }
   }
   state.loading = false;
@@ -191,7 +195,7 @@ async function initAuth() {
     } else if (event === "SIGNED_IN" && session?.user) {
       state.user = session.user;
       if (state.authView === "reset") { renderAuthScreen(); return; }
-      await Promise.all([loadRecipesFromDB(), loadProfile()]);
+      await Promise.all([loadRecipesFromDB(), loadProfile(), loadGeneralNotes()]);
       render();
     } else if (event === "SIGNED_OUT") {
       state.user = null;
@@ -199,6 +203,9 @@ async function initAuth() {
       state.selectedRecipeId = "";
       state.library = [];
       state.libraryError = "";
+      state.generalNotes = "";
+      state.generalNotesSaved = "";
+      state.generalNotesError = "";
       state.screen = "myrecipes";
       state.profile = { display_name: "", avatar_url: "" };
       render();
@@ -299,6 +306,67 @@ async function insertRecipeToDB(recipe) {
 }
 
 // ─── Profiel ──────────────────────────────────────────────────────────────────
+function generalNotesStorageKey() {
+  return `broodboek:general-notes:${state.user?.id || "anon"}`;
+}
+
+function readLocalGeneralNotes() {
+  try { return localStorage.getItem(generalNotesStorageKey()) || ""; } catch { return ""; }
+}
+
+function writeLocalGeneralNotes(value) {
+  try { localStorage.setItem(generalNotesStorageKey(), value || ""); } catch {}
+}
+
+async function loadGeneralNotes() {
+  state.generalNotes = readLocalGeneralNotes();
+  state.generalNotesError = "";
+  if (!state.user) return;
+  const { data, error } = await db
+    .from("user_notes")
+    .select("content, updated_at")
+    .eq("user_id", state.user.id)
+    .maybeSingle();
+  if (error) {
+    state.generalNotesError = "Online notitieblad nog niet ingericht in Supabase";
+    return;
+  }
+  if (data) {
+    state.generalNotes = data.content || "";
+    state.generalNotesSaved = data.updated_at || "";
+    writeLocalGeneralNotes(state.generalNotes);
+  }
+}
+
+async function saveGeneralNotes() {
+  if (!state.user) return;
+  writeLocalGeneralNotes(state.generalNotes);
+  state.generalNotesError = "";
+  const updatedAt = new Date().toISOString();
+  const { error } = await db.from("user_notes").upsert({
+    user_id: state.user.id,
+    content: state.generalNotes,
+    updated_at: updatedAt,
+  });
+  if (error) {
+    state.generalNotesError = "Online notitieblad nog niet ingericht in Supabase";
+    state.saveMessage = "Notitie lokaal bewaard";
+  } else {
+    state.generalNotesSaved = updatedAt;
+    state.saveMessage = "Notitieblad opgeslagen";
+  }
+  const saveEl = document.querySelector("[data-notes-save-state]");
+  if (saveEl) saveEl.textContent = state.saveMessage;
+}
+
+function scheduleGeneralNotesSave() {
+  clearTimeout(notesSaveTimer);
+  state.saveMessage = "Notitie niet opgeslagen";
+  const saveEl = document.querySelector("[data-notes-save-state]");
+  if (saveEl) saveEl.textContent = state.saveMessage;
+  notesSaveTimer = setTimeout(saveGeneralNotes, 900);
+}
+
 async function loadProfile() {
   const { data } = await db.from("profiles").select("*").eq("id", state.user.id).single();
   if (data) state.profile = { display_name: data.display_name || "", avatar_url: data.avatar_url || "" };
@@ -496,7 +564,7 @@ function fmtDate(s) {
 }
 
 function createBackupPayload() {
-  return { exportedAt: new Date().toISOString(), app: "Broodboek", recipes: state.recipes };
+  return { exportedAt: new Date().toISOString(), app: "Broodboek", recipes: state.recipes, generalNotes: state.generalNotes || "" };
 }
 
 function backupStorageKey() {
@@ -811,12 +879,15 @@ function downloadExcelBackup() {
     .filter((recipe) => recipe.photoUrl)
     .map((recipe) => ({ Recept: recipe.name || "", Foto: recipe.photoUrl }));
 
+  const generalNotes = [{ Onderwerp: "Algemene tips", Notities: state.generalNotes || "" }];
+
   const wb = window.XLSX.utils.book_new();
   window.XLSX.utils.book_append_sheet(wb, makeSheet(recipes), "Recepten");
   window.XLSX.utils.book_append_sheet(wb, makeSheet(flours), "Meelsoorten");
   window.XLSX.utils.book_append_sheet(wb, makeSheet(additions), "Ingredienten");
   window.XLSX.utils.book_append_sheet(wb, makeSheet(notes), "Logboek");
   window.XLSX.utils.book_append_sheet(wb, makeSheet(photos), "Fotos");
+  window.XLSX.utils.book_append_sheet(wb, makeSheet(generalNotes), "Notitieblad");
   window.XLSX.writeFile(wb, `mijn-broodboek-backup-${todayValue()}.xlsx`);
   saveAutomaticBackup("handmatig");
 }
@@ -887,6 +958,7 @@ function renderTopbar(showBack = false, backLabel = "") {
         <nav class="main-nav">
           <button class="nav-btn ${state.screen === "myrecipes" ? "active" : ""}" data-screen="myrecipes">${icon("grain")}Mijn recepten</button>
           <button class="nav-btn ${state.screen === "library" ? "active" : ""}" data-screen="library">${icon("book")}Bibliotheek</button>
+          <button class="nav-btn ${state.screen === "notes" ? "active" : ""}" data-screen="notes">${icon("note")}Notities</button>
         </nav>`}
       <div class="topbar-user">
         <details class="more-options app-options">
@@ -1137,6 +1209,31 @@ function renderLibrary() {
         </div>
         ${content()}
       </div>
+    </main>`;
+}
+
+// ─── Notitieblad scherm ───────────────────────────────────────────────────────
+function renderNotes() {
+  const savedText = state.generalNotesSaved ? `Laatst online opgeslagen: ${esc(formatBackupDate(state.generalNotesSaved))}` : "Automatisch opslaan staat aan.";
+  return `
+    <main class="app-shell">
+      ${renderTopbar()}
+      <section class="notes-screen">
+        <div class="tile-screen-header notes-header">
+          <div>
+            <h2>Notitieblad</h2>
+            <p>Algemene baktips, ovenstanden, deegobservaties en dingen die je later wilt onthouden.</p>
+          </div>
+          <button class="dictate-button" data-dictate-target="[data-general-notes]" type="button">${icon("mic")}Inspreken</button>
+        </div>
+        ${state.generalNotesError ? `<p class="library-state error"><strong>Online opslaan nog niet actief</strong><span>${esc(state.generalNotesError)}. Je tekst wordt voorlopig lokaal op dit apparaat bewaard.</span></p>` : ""}
+        <label class="general-notes-field dictation-field">
+          <span>Algemene tips</span>
+          <textarea data-general-notes rows="16" placeholder="Bijvoorbeeld: oven 20 minuten voorverwarmen op 245 graden, daarna terug naar 220. Desemstarter piekt meestal na 5 uur bij 22 graden...">${esc(state.generalNotes || "")}</textarea>
+          <small class="dictation-status" data-dictation-status></small>
+        </label>
+        <p class="save-message" data-notes-save-state>${savedText}</p>
+      </section>
     </main>`;
 }
 
@@ -1418,6 +1515,7 @@ function render() {
   if (state.screen === "myrecipes") root.innerHTML = renderMyRecipes();
   else if (state.screen === "library") root.innerHTML = renderLibrary();
   else if (state.screen === "workbench") root.innerHTML = renderWorkbench();
+  else if (state.screen === "notes") root.innerHTML = renderNotes();
   else if (state.screen === "profile") root.innerHTML = renderProfile();
 
   root.insertAdjacentHTML("beforeend", renderPhotoPreview() + renderBackupPanel() + renderFaqPanel() + renderConfirmDialog() + renderBackupReminder() + renderAppToast());
@@ -1764,6 +1862,12 @@ function bindEvents() {
   });
 
   document.querySelector("[data-retry-library]")?.addEventListener("click", loadLibrary);
+
+  document.querySelector("[data-general-notes]")?.addEventListener("input", (e) => {
+    state.generalNotes = e.target.value;
+    writeLocalGeneralNotes(state.generalNotes);
+    scheduleGeneralNotesSave();
+  });
 
   document.querySelector("[data-go-back]")?.addEventListener("click", () => {
     state.screen = "myrecipes";
