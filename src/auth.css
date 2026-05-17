@@ -607,7 +607,7 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
   .category-field > div { grid-template-columns: 1fr !important; gap: 8px; }
   .leavening-options { gap: 12px; }
 
-  .metric-row { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 6px !important; }
+  .metric-row { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; margin-bottom: 14px !important; }
   .metric-row > div { padding: 9px 8px !important; gap: 3px; min-width: 0; }
   .metric-row svg { width: 16px; height: 16px; }
   .metric-row span { font-size: 0.62rem !important; }

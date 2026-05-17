@@ -86,7 +86,8 @@ h2 { font-size: clamp(1.1rem, 3vw, 1.8rem); }
 .icon-action.danger { border-color: rgba(122,63,36,0.24); color: var(--oven-bruin); }
 
 .metric-row {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  margin: 0 0 16px;
 }
 .metric-row > div {
   display: flex; flex-direction: column; gap: 4px;
