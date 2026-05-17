@@ -230,13 +230,22 @@ async function initAuth() {
   });
 }
 
+function withTimeout(promise, message = "Supabase reageert niet. Probeer het zo opnieuw of controleer de database-instellingen.", ms = 12000) {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => setTimeout(() => resolve({ timeoutError: message }), ms)),
+  ]);
+}
+
 async function signIn(email, password) {
-  const { error } = await db.auth.signInWithPassword({ email, password });
-  return error?.message || null;
+  const result = await withTimeout(db.auth.signInWithPassword({ email, password }), "Inloggen duurt te lang. Probeer opnieuw.");
+  if (result.timeoutError) return result.timeoutError;
+  return result.error?.message || null;
 }
 async function signUp(email, password) {
-  const { error } = await db.auth.signUp({ email, password });
-  return error?.message || null;
+  const result = await withTimeout(db.auth.signUp({ email, password }), "Account aanmaken duurt te lang. Controleer of het Supabase profiles-script is uitgevoerd en probeer opnieuw.");
+  if (result.timeoutError) return result.timeoutError;
+  return result.error?.message || null;
 }
 async function requestPasswordReset(email) {
   const redirectTo = window.location.origin + window.location.pathname + "?type=recovery";
@@ -1292,7 +1301,8 @@ function bindAuthEvents() {
     }
     const error = state.authView === "login" ? await signIn(email, password) : await signUp(email, password);
     if (!error && state.authView === "register") { state.saveMessage = "Account aangemaakt — controleer je e-mail en log daarna in."; state.authView = "login"; renderAuthScreen(); return; }
-    if (error) { state.saveMessage = error; renderAuthScreen(); }
+    if (error) { state.saveMessage = error; renderAuthScreen(); return; }
+    renderAuthScreen();
   });
   document.getElementById("auth-email")?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") document.getElementById("auth-password")?.focus() || document.getElementById("auth-submit").click();
