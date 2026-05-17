@@ -7,7 +7,7 @@
 .main-nav {
   display: flex;
   grid-column: 1 / -1;
-  grid-row: 3;
+  grid-row: 2;
   justify-self: end;
   gap: 8px;
   padding: 9px;

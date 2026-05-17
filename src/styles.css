@@ -48,9 +48,9 @@ h2 { font-size: clamp(1.1rem, 3vw, 1.8rem); }
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 14px 18px;
-  min-height: 168px;
-  padding: 8px 18px 12px 8px;
+  gap: 6px 18px;
+  min-height: 142px;
+  padding: 8px 18px 10px 8px;
   background:
     linear-gradient(180deg, rgba(255,250,241,0.98), rgba(251,244,232,0.92)),
     var(--zout-wit);
@@ -67,6 +67,7 @@ h2 { font-size: clamp(1.1rem, 3vw, 1.8rem); }
   height: 2px;
   margin-left: 114px;
   background: linear-gradient(90deg, rgba(122,63,36,0.46), rgba(111,127,77,0.22), transparent);
+  display: none;
 }
 
 .brand-lockup { display: flex; align-items: center; gap: 22px; grid-column: 1; grid-row: 1; }
