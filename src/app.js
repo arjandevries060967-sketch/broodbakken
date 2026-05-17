@@ -104,6 +104,7 @@ const state = {
   libraryError: "",
   notePages: [],
   selectedNotePageId: "",
+  noteSearch: "",
   generalNotesError: "",
   profile: { display_name: "", avatar_url: "" },
   profileSaving: false,
@@ -205,6 +206,7 @@ async function initAuth() {
       state.libraryError = "";
       state.notePages = [];
       state.selectedNotePageId = "";
+      state.noteSearch = "";
       state.generalNotesError = "";
       state.screen = "myrecipes";
       state.profile = { display_name: "", avatar_url: "" };
@@ -1272,6 +1274,10 @@ function renderLibrary() {
 // ─── Notitieblad scherm ───────────────────────────────────────────────────────
 function renderNotes() {
   const active = getActiveNotePage() || makeNotePage();
+  const query = state.noteSearch.trim().toLowerCase();
+  const visiblePages = query
+    ? state.notePages.filter((page) => `${page.title || ""} ${page.content || ""}`.toLowerCase().includes(query))
+    : state.notePages;
   const savedText = active.updatedAt ? `Laatst gewijzigd: ${esc(formatBackupDate(active.updatedAt))}` : "Automatisch opslaan staat aan.";
   return `
     <main class="app-shell">
@@ -1286,12 +1292,18 @@ function renderNotes() {
         </div>
         ${state.generalNotesError ? `<p class="library-state error"><strong>Online opslaan nog niet actief</strong><span>${esc(state.generalNotesError)}. Je notities worden voorlopig lokaal op dit apparaat bewaard.</span></p>` : ""}
         <div class="notes-layout">
-          <aside class="note-page-list" aria-label="Notitiebladen">
-            ${state.notePages.map((page) => `
-              <button class="note-page-tab ${page.id === active.id ? "active" : ""}" data-note-page="${esc(page.id)}" type="button">
-                <strong>${esc(page.title || "Naamloos")}</strong>
-                <span>${esc(preview(page.content || "Nog geen tekst"))}</span>
-              </button>`).join("")}
+          <aside class="note-pages-sidebar" aria-label="Notitiebladen">
+            <label class="note-search-field">
+              <span>Zoeken</span>
+              <input data-note-search type="search" value="${esc(state.noteSearch)}" placeholder="Zoek in notities" />
+            </label>
+            <div class="note-page-list">
+              ${visiblePages.length ? visiblePages.map((page) => `
+                <button class="note-page-tab ${page.id === active.id ? "active" : ""}" data-note-page="${esc(page.id)}" type="button">
+                  <strong>${esc(page.title || "Naamloos")}</strong>
+                  <span>${esc(preview(page.content || "Nog geen tekst"))}</span>
+                </button>`).join("") : `<p class="empty-state">Geen notitiebladen gevonden.</p>`}
+            </div>
           </aside>
           <div class="note-page-editor">
             <label class="general-notes-field note-title-field">
@@ -1955,6 +1967,12 @@ function bindEvents() {
 
   document.querySelector("[data-retry-library]")?.addEventListener("click", loadLibrary);
 
+  document.querySelector("[data-note-search]")?.addEventListener("input", (e) => {
+    state.noteSearch = e.target.value;
+    render();
+    document.querySelector("[data-note-search]")?.focus();
+  });
+
   document.querySelectorAll("[data-note-page]").forEach((btn) => {
     btn.addEventListener("click", () => {
       state.selectedNotePageId = btn.dataset.notePage;
@@ -1966,6 +1984,7 @@ function bindEvents() {
     const page = makeNotePage("Nieuw notitieblad", "");
     state.notePages.push(page);
     state.selectedNotePageId = page.id;
+    state.noteSearch = "";
     writeLocalNotePages();
     render();
     document.querySelector("[data-note-title]")?.focus();

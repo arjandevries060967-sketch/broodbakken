@@ -236,6 +236,15 @@
 .notes-header { align-items: start; }
 .notes-header p { margin: 4px 0 0; color: var(--steen-grijs); font-size: 0.9rem; line-height: 1.45; }
 .notes-layout { display: grid; grid-template-columns: minmax(190px, 0.34fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.note-pages-sidebar { display: grid; gap: 10px; align-content: start; }
+.note-search-field { display: grid; gap: 6px; }
+.note-search-field span { color: var(--gist-groen); font-size: 0.76rem; font-weight: 900; text-transform: uppercase; }
+.note-search-field input {
+  width: 100%; border: 1px solid var(--lijn); border-radius: 8px;
+  background: #fbf4e8; color: var(--oven-donker);
+  padding: 9px 10px; font: inherit; font-size: 0.84rem;
+}
+.note-search-field input:focus { outline: 2px solid rgba(111,127,77,0.22); border-color: rgba(111,127,77,0.5); }
 .note-page-list { display: grid; gap: 8px; }
 .note-page-tab {
   display: grid; gap: 4px; width: 100%; padding: 11px 12px;
