@@ -1271,7 +1271,7 @@ function renderAuthScreen() {
       <div class="auth-card">
         <div class="auth-brand">
           <div class="brand-mark"><img src="./assets/logo.png" alt="Broodboek logo" /></div>
-          <div><h1>Broodboek</h1></div>
+          <div><h1>Mijn Broodboek</h1></div>
         </div>
         <div class="auth-form-wrap">
           <h2>${isForgot ? "Wachtwoord vergeten" : isReset ? "Nieuw wachtwoord" : isLogin ? "Inloggen" : "Account aanmaken"}</h2>
