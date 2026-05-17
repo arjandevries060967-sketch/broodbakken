@@ -1294,8 +1294,8 @@ function bindAuthEvents() {
 
     const password = document.getElementById("auth-password").value;
     if (!password) { state.saveMessage = "Vul e-mailadres en wachtwoord in"; renderAuthScreen(); return; }
-    if (!isLogin && password.length < 6) { state.saveMessage = "Kies een wachtwoord van minimaal 6 tekens"; renderAuthScreen(); return; }
-    if (!isLogin) {
+    if (state.authView !== "login" && password.length < 6) { state.saveMessage = "Kies een wachtwoord van minimaal 6 tekens"; renderAuthScreen(); return; }
+    if (state.authView !== "login") {
       const repeat = document.getElementById("auth-password-repeat")?.value || "";
       if (password !== repeat) { state.saveMessage = "De wachtwoorden zijn niet gelijk"; renderAuthScreen(); return; }
     }
