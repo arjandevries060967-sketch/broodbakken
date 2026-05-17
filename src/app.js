@@ -1219,9 +1219,11 @@ function renderAuthScreen() {
               <button class="tool-button primary auth-submit" id="auth-submit">Wachtwoord opslaan</button>
             ` : `
               <label><span>E-mailadres</span><input id="auth-email" type="email" placeholder="jouw@email.nl" autocomplete="email" /></label>
-              ${isForgot ? "" : `
-                <label><span>Wachtwoord</span><input id="auth-password" type="password" placeholder="minimaal 6 tekens" autocomplete="${isLogin ? "current-password" : "new-password"}" /></label>
-                ${isLogin ? "" : `<label><span>Herhaal wachtwoord</span><input id="auth-password-repeat" type="password" placeholder="nog een keer" autocomplete="new-password" /></label>`}
+              ${isForgot ? "" : isLogin ? `
+                <label><span>Wachtwoord</span><input id="auth-password" type="password" placeholder="minimaal 6 tekens" autocomplete="current-password" /></label>
+              ` : `
+                <label><span>Wachtwoord</span><input id="auth-password" type="password" placeholder="minimaal 6 tekens" autocomplete="new-password" /></label>
+                <label><span>Herhaal wachtwoord</span><input id="auth-password-repeat" type="password" placeholder="nog een keer" autocomplete="new-password" /></label>
               `}
               <button class="tool-button primary auth-submit" id="auth-submit">${isForgot ? "Herstellink sturen" : isLogin ? "Inloggen" : "Account aanmaken"}</button>
             `}
