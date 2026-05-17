@@ -56,7 +56,7 @@ h2 { font-size: clamp(1.1rem, 3vw, 1.8rem); }
 .brand-lockup { display: flex; align-items: center; gap: 14px; }
 .brand-mark {
   display: grid; place-items: center;
-  width: clamp(40px, 4vw, 52px); aspect-ratio: 1;
+  width: clamp(44px, 7vw, 72px); aspect-ratio: 1;
   border: 2px solid rgba(111,127,77,0.22); border-radius: var(--radius);
   background: #fbf4e8; color: var(--gist-groen); flex-shrink: 0;
 }

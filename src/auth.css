@@ -23,7 +23,7 @@
 .nav-btn:not(.active):hover { background: var(--rogge); }
 
 /* ── Topbar uitbreidingen ────────────────────────────────────────────────── */
-.topbar h1 { font-size: clamp(1.35rem, 3vw, 2.05rem); }
+.topbar h1 { font-size: clamp(1.6rem, 5vw, 3.2rem); }
 .topbar-user { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-left: auto; }
 .topbar-user .more-options-list { right: 0; left: auto; }
 .user-email { font-size: 0.82rem; font-weight: 600; color: var(--steen-grijs); }
