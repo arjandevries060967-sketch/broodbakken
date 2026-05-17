@@ -1273,7 +1273,7 @@ function renderTopbar(showBack = false, backLabel = "") {
         <div class="brand-mark"><img src="./assets/logo.png" alt="Broodboek logo" /></div>
         <div class="brand-copy">
           <h1>Mijn Broodboek</h1>
-          <p>Recepten, baknotities en backups</p>
+          <p>Recepten en baknotities</p>
         </div>
       </div>
       ${showBack ? `

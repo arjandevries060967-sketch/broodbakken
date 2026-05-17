@@ -9,27 +9,36 @@
   grid-column: 1 / -1;
   grid-row: 3;
   justify-self: end;
-  gap: 6px;
-  padding: 6px;
-  border: 1px solid rgba(122,63,36,0.12);
-  border-radius: 10px;
-  background: rgba(246,239,226,0.72);
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid rgba(122,63,36,0.18);
+  border-radius: 12px;
+  background: rgba(255,250,241,0.82);
+  box-shadow: 0 14px 34px rgba(75,40,27,0.12), inset 0 1px 0 rgba(255,250,241,0.95);
 }
 .main-nav:has([data-go-back]) { justify-self: start; }
 
 .nav-btn {
   display: inline-flex; align-items: center; gap: 6px;
-  min-height: 38px; padding: 8px 14px;
+  min-height: 44px; padding: 9px 18px;
   border: 1px solid transparent; border-radius: 8px;
   background: transparent; color: var(--steen-grijs);
-  font: inherit; font-size: 0.9rem; font-weight: 800; cursor: pointer;
+  font: inherit; font-size: 1rem; font-weight: 900; cursor: pointer;
 }
 .nav-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
-.nav-btn.active { background: var(--oven-bruin); color: var(--zout-wit); border-color: rgba(122,63,36,0.3); }
-.nav-btn:not(.active):hover { background: var(--rogge); }
+.nav-btn.active {
+  background: var(--oven-bruin); color: var(--zout-wit);
+  border-color: rgba(122,63,36,0.36);
+  box-shadow: 0 10px 22px rgba(75,40,27,0.2), inset 0 1px 0 rgba(255,250,241,0.16);
+}
+.nav-btn:not(.active):hover {
+  background: #fbf4e8;
+  border-color: rgba(122,63,36,0.18);
+  box-shadow: 0 8px 18px rgba(75,40,27,0.08);
+}
 
 /* ── Topbar uitbreidingen ────────────────────────────────────────────────── */
-.topbar h1 { font-size: clamp(1.6rem, 5vw, 3.2rem); }
+.topbar h1 { font-size: clamp(2rem, 5vw, 4.2rem); }
 .topbar-user {
   display: flex; align-items: center; justify-content: flex-end; gap: 10px;
   grid-column: 2; grid-row: 1; margin-left: auto;
@@ -480,6 +489,8 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
+    min-height: 0;
+    padding-left: 12px;
   }
   .brand-lockup { grid-column: 1; grid-row: 1; min-width: 0; }
   .topbar-user { grid-column: 2; grid-row: 1; justify-self: end; align-self: center; }
@@ -506,6 +517,7 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 8px 10px;
+    min-height: 0;
     padding: 9px 10px !important;
     border-radius: 0 !important; border-left: none !important; border-right: none !important;
   }
