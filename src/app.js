@@ -1271,7 +1271,10 @@ function renderTopbar(showBack = false, backLabel = "") {
     <header class="topbar">
       <div class="brand-lockup">
         <div class="brand-mark"><img src="./assets/logo.png" alt="Broodboek logo" /></div>
-        <h1>Mijn Broodboek</h1>
+        <div class="brand-copy">
+          <h1>Mijn Broodboek</h1>
+          <p>Recepten, baknotities en backups</p>
+        </div>
       </div>
       ${showBack ? `
         <nav class="main-nav">
