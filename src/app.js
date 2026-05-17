@@ -102,8 +102,8 @@ const state = {
   library: [],
   libraryLoading: false,
   libraryError: "",
-  generalNotes: "",
-  generalNotesSaved: "",
+  notePages: [],
+  selectedNotePageId: "",
   generalNotesError: "",
   profile: { display_name: "", avatar_url: "" },
   profileSaving: false,
@@ -203,8 +203,8 @@ async function initAuth() {
       state.selectedRecipeId = "";
       state.library = [];
       state.libraryError = "";
-      state.generalNotes = "";
-      state.generalNotesSaved = "";
+      state.notePages = [];
+      state.selectedNotePageId = "";
       state.generalNotesError = "";
       state.screen = "myrecipes";
       state.profile = { display_name: "", avatar_url: "" };
@@ -306,65 +306,122 @@ async function insertRecipeToDB(recipe) {
 }
 
 // ─── Profiel ──────────────────────────────────────────────────────────────────
-function generalNotesStorageKey() {
+function legacyGeneralNotesStorageKey() {
   return `broodboek:general-notes:${state.user?.id || "anon"}`;
 }
 
-function readLocalGeneralNotes() {
-  try { return localStorage.getItem(generalNotesStorageKey()) || ""; } catch { return ""; }
+function notePagesStorageKey() {
+  return `broodboek:note-pages:${state.user?.id || "anon"}`;
 }
 
-function writeLocalGeneralNotes(value) {
-  try { localStorage.setItem(generalNotesStorageKey(), value || ""); } catch {}
+function makeUuid() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) =>
+    (Number(c) ^ (Math.random() * 16 >> Number(c) / 4)).toString(16));
+}
+
+function makeNotePage(title = "Algemene tips", content = "") {
+  return {
+    id: makeUuid(),
+    title,
+    content,
+    sortOrder: state.notePages.length,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function normaliseNotePage(row, index = 0) {
+  return {
+    id: row.id || makeNotePage().id,
+    title: row.title || "Naamloos notitieblad",
+    content: row.content || "",
+    sortOrder: Number.isFinite(Number(row.sortOrder ?? row.sort_order)) ? Number(row.sortOrder ?? row.sort_order) : index,
+    updatedAt: row.updatedAt || row.updated_at || "",
+  };
+}
+
+function readLocalNotePages() {
+  try {
+    const raw = localStorage.getItem(notePagesStorageKey());
+    const pages = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(pages) && pages.length) return pages.map(normaliseNotePage);
+    const legacy = localStorage.getItem(legacyGeneralNotesStorageKey()) || "";
+    return [makeNotePage("Algemene tips", legacy)];
+  } catch {
+    return [makeNotePage()];
+  }
+}
+
+function writeLocalNotePages(pages = state.notePages) {
+  try { localStorage.setItem(notePagesStorageKey(), JSON.stringify(pages)); } catch {}
+}
+
+function getActiveNotePage() {
+  return state.notePages.find((page) => page.id === state.selectedNotePageId) || state.notePages[0] || null;
 }
 
 async function loadGeneralNotes() {
-  state.generalNotes = readLocalGeneralNotes();
+  state.notePages = readLocalNotePages();
+  state.selectedNotePageId = state.selectedNotePageId || state.notePages[0]?.id || "";
   state.generalNotesError = "";
   if (!state.user) return;
   const { data, error } = await db
-    .from("user_notes")
-    .select("content, updated_at")
+    .from("user_note_pages")
+    .select("id, title, content, sort_order, updated_at")
     .eq("user_id", state.user.id)
-    .maybeSingle();
+    .order("sort_order", { ascending: true })
+    .order("updated_at", { ascending: false });
   if (error) {
-    state.generalNotesError = "Online notitieblad nog niet ingericht in Supabase";
+    state.generalNotesError = "Online notitiebladen nog niet ingericht in Supabase";
     return;
   }
-  if (data) {
-    state.generalNotes = data.content || "";
-    state.generalNotesSaved = data.updated_at || "";
-    writeLocalGeneralNotes(state.generalNotes);
+  if (Array.isArray(data) && data.length) {
+    state.notePages = data.map(normaliseNotePage);
+    state.selectedNotePageId = state.notePages.some((page) => page.id === state.selectedNotePageId) ? state.selectedNotePageId : state.notePages[0].id;
+    writeLocalNotePages();
   }
 }
 
-async function saveGeneralNotes() {
-  if (!state.user) return;
-  writeLocalGeneralNotes(state.generalNotes);
+async function saveNotePage(page = getActiveNotePage()) {
+  if (!page || !state.user) return;
+  page.updatedAt = new Date().toISOString();
+  writeLocalNotePages();
   state.generalNotesError = "";
-  const updatedAt = new Date().toISOString();
-  const { error } = await db.from("user_notes").upsert({
+  const { error } = await db.from("user_note_pages").upsert({
+    id: page.id,
     user_id: state.user.id,
-    content: state.generalNotes,
-    updated_at: updatedAt,
+    title: page.title || "Naamloos notitieblad",
+    content: page.content || "",
+    sort_order: page.sortOrder || 0,
+    updated_at: page.updatedAt,
   });
   if (error) {
-    state.generalNotesError = "Online notitieblad nog niet ingericht in Supabase";
+    state.generalNotesError = "Online notitiebladen nog niet ingericht in Supabase";
     state.saveMessage = "Notitie lokaal bewaard";
   } else {
-    state.generalNotesSaved = updatedAt;
     state.saveMessage = "Notitieblad opgeslagen";
   }
   const saveEl = document.querySelector("[data-notes-save-state]");
   if (saveEl) saveEl.textContent = state.saveMessage;
 }
 
-function scheduleGeneralNotesSave() {
+function scheduleNotePageSave(page = getActiveNotePage()) {
   clearTimeout(notesSaveTimer);
   state.saveMessage = "Notitie niet opgeslagen";
   const saveEl = document.querySelector("[data-notes-save-state]");
   if (saveEl) saveEl.textContent = state.saveMessage;
-  notesSaveTimer = setTimeout(saveGeneralNotes, 900);
+  notesSaveTimer = setTimeout(() => saveNotePage(page), 900);
+}
+
+async function deleteNotePage(id) {
+  const page = state.notePages.find((item) => item.id === id);
+  if (!page || state.notePages.length <= 1) return;
+  state.notePages = state.notePages.filter((item) => item.id !== id).map((item, index) => ({ ...item, sortOrder: index }));
+  state.selectedNotePageId = state.notePages[0]?.id || "";
+  writeLocalNotePages();
+  if (state.user) await db.from("user_note_pages").delete().eq("id", id).eq("user_id", state.user.id);
+  state.saveMessage = `"${page.title || "Notitieblad"}" verwijderd`;
+  render();
 }
 
 async function loadProfile() {
@@ -564,7 +621,7 @@ function fmtDate(s) {
 }
 
 function createBackupPayload() {
-  return { exportedAt: new Date().toISOString(), app: "Broodboek", recipes: state.recipes, generalNotes: state.generalNotes || "" };
+  return { exportedAt: new Date().toISOString(), app: "Broodboek", recipes: state.recipes, notePages: state.notePages };
 }
 
 function backupStorageKey() {
@@ -879,7 +936,7 @@ function downloadExcelBackup() {
     .filter((recipe) => recipe.photoUrl)
     .map((recipe) => ({ Recept: recipe.name || "", Foto: recipe.photoUrl }));
 
-  const generalNotes = [{ Onderwerp: "Algemene tips", Notities: state.generalNotes || "" }];
+  const generalNotes = state.notePages.map((page) => ({ Titel: page.title || "", Notities: page.content || "", "Laatst gewijzigd": page.updatedAt || "" }));
 
   const wb = window.XLSX.utils.book_new();
   window.XLSX.utils.book_append_sheet(wb, makeSheet(recipes), "Recepten");
@@ -1214,25 +1271,46 @@ function renderLibrary() {
 
 // ─── Notitieblad scherm ───────────────────────────────────────────────────────
 function renderNotes() {
-  const savedText = state.generalNotesSaved ? `Laatst online opgeslagen: ${esc(formatBackupDate(state.generalNotesSaved))}` : "Automatisch opslaan staat aan.";
+  const active = getActiveNotePage() || makeNotePage();
+  const savedText = active.updatedAt ? `Laatst gewijzigd: ${esc(formatBackupDate(active.updatedAt))}` : "Automatisch opslaan staat aan.";
   return `
     <main class="app-shell">
       ${renderTopbar()}
       <section class="notes-screen">
         <div class="tile-screen-header notes-header">
           <div>
-            <h2>Notitieblad</h2>
+            <h2>Notities</h2>
             <p>Algemene baktips, ovenstanden, deegobservaties en dingen die je later wilt onthouden.</p>
           </div>
-          <button class="dictate-button" data-dictate-target="[data-general-notes]" type="button">${icon("mic")}Inspreken</button>
+          <button class="tool-button primary" data-add-note-page type="button">${icon("plus")}Nieuw blad</button>
         </div>
-        ${state.generalNotesError ? `<p class="library-state error"><strong>Online opslaan nog niet actief</strong><span>${esc(state.generalNotesError)}. Je tekst wordt voorlopig lokaal op dit apparaat bewaard.</span></p>` : ""}
-        <label class="general-notes-field dictation-field">
-          <span>Algemene tips</span>
-          <textarea data-general-notes rows="16" placeholder="Bijvoorbeeld: oven 20 minuten voorverwarmen op 245 graden, daarna terug naar 220. Desemstarter piekt meestal na 5 uur bij 22 graden...">${esc(state.generalNotes || "")}</textarea>
-          <small class="dictation-status" data-dictation-status></small>
-        </label>
-        <p class="save-message" data-notes-save-state>${savedText}</p>
+        ${state.generalNotesError ? `<p class="library-state error"><strong>Online opslaan nog niet actief</strong><span>${esc(state.generalNotesError)}. Je notities worden voorlopig lokaal op dit apparaat bewaard.</span></p>` : ""}
+        <div class="notes-layout">
+          <aside class="note-page-list" aria-label="Notitiebladen">
+            ${state.notePages.map((page) => `
+              <button class="note-page-tab ${page.id === active.id ? "active" : ""}" data-note-page="${esc(page.id)}" type="button">
+                <strong>${esc(page.title || "Naamloos")}</strong>
+                <span>${esc(preview(page.content || "Nog geen tekst"))}</span>
+              </button>`).join("")}
+          </aside>
+          <div class="note-page-editor">
+            <label class="general-notes-field note-title-field">
+              <span>Titel</span>
+              <input data-note-title type="text" value="${esc(active.title || "")}" placeholder="Bijv. Oven, Desem, Rijstijden" />
+            </label>
+            <label class="general-notes-field dictation-field">
+              <span class="field-header">Notities
+                <button class="dictate-button" data-dictate-target="[data-general-notes]" type="button">${icon("mic")}Inspreken</button>
+              </span>
+              <textarea data-general-notes rows="16" placeholder="Bijvoorbeeld: oven 20 minuten voorverwarmen op 245 graden, daarna terug naar 220. Desemstarter piekt meestal na 5 uur bij 22 graden...">${esc(active.content || "")}</textarea>
+              <small class="dictation-status" data-dictation-status></small>
+            </label>
+            <div class="note-editor-footer">
+              <p class="save-message" data-notes-save-state>${savedText}</p>
+              <button class="tool-button danger" data-delete-note-page="${esc(active.id)}" type="button" ${state.notePages.length <= 1 ? "disabled" : ""}>${icon("trash")}Verwijder blad</button>
+            </div>
+          </div>
+        </div>
       </section>
     </main>`;
 }
@@ -1577,6 +1655,18 @@ async function confirmDeleteRecipe(recipeId) {
   render();
 }
 
+async function restoreNotePagesFromPayload(payload) {
+  const pages = Array.isArray(payload?.notePages)
+    ? payload.notePages
+    : payload?.generalNotes ? [makeNotePage("Algemene tips", payload.generalNotes)] : [];
+  if (!pages.length) return;
+  const restored = pages.map((page, index) => normaliseNotePage({ ...page, id: makeUuid(), sortOrder: state.notePages.length + index }));
+  state.notePages.push(...restored);
+  state.selectedNotePageId = restored[0]?.id || state.selectedNotePageId;
+  writeLocalNotePages();
+  await Promise.all(restored.map((page) => saveNotePage(page)));
+}
+
 async function restoreBackupFile(file) {
   const text = await file.text();
   const imp = JSON.parse(text);
@@ -1586,6 +1676,7 @@ async function restoreBackupFile(file) {
     const saved = await insertRecipeToDB(r);
     if (saved) state.recipes.push(saved);
   }
+  await restoreNotePagesFromPayload(imp);
   state.selectedRecipeId = state.recipes[0]?.id || "";
   state.categories = getCategoriesFromRecipes(state.recipes);
   state.saveMessage = `Backup teruggezet: ${recipes.length} recept${recipes.length === 1 ? "" : "en"} toegevoegd`;
@@ -1602,6 +1693,7 @@ async function restoreStoredBackup(id) {
     const saved = await insertRecipeToDB(r);
     if (saved) state.recipes.push(saved);
   }
+  await restoreNotePagesFromPayload(payload);
   state.selectedRecipeId = state.recipes[0]?.id || "";
   state.categories = getCategoriesFromRecipes(state.recipes);
   state.saveMessage = `Backup van ${formatBackupDate(backup.createdAt)} teruggezet`;
@@ -1863,10 +1955,41 @@ function bindEvents() {
 
   document.querySelector("[data-retry-library]")?.addEventListener("click", loadLibrary);
 
+  document.querySelectorAll("[data-note-page]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.selectedNotePageId = btn.dataset.notePage;
+      render();
+    });
+  });
+
+  document.querySelector("[data-add-note-page]")?.addEventListener("click", () => {
+    const page = makeNotePage("Nieuw notitieblad", "");
+    state.notePages.push(page);
+    state.selectedNotePageId = page.id;
+    writeLocalNotePages();
+    render();
+    document.querySelector("[data-note-title]")?.focus();
+    saveNotePage(page);
+  });
+
+  document.querySelector("[data-note-title]")?.addEventListener("input", (e) => {
+    const page = getActiveNotePage();
+    if (!page) return;
+    page.title = e.target.value;
+    writeLocalNotePages();
+    scheduleNotePageSave(page);
+  });
+
   document.querySelector("[data-general-notes]")?.addEventListener("input", (e) => {
-    state.generalNotes = e.target.value;
-    writeLocalGeneralNotes(state.generalNotes);
-    scheduleGeneralNotesSave();
+    const page = getActiveNotePage();
+    if (!page) return;
+    page.content = e.target.value;
+    writeLocalNotePages();
+    scheduleNotePageSave(page);
+  });
+
+  document.querySelector("[data-delete-note-page]")?.addEventListener("click", async (e) => {
+    await deleteNotePage(e.currentTarget.dataset.deleteNotePage);
   });
 
   document.querySelector("[data-go-back]")?.addEventListener("click", () => {

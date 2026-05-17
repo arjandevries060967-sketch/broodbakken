@@ -235,17 +235,32 @@
 }
 .notes-header { align-items: start; }
 .notes-header p { margin: 4px 0 0; color: var(--steen-grijs); font-size: 0.9rem; line-height: 1.45; }
+.notes-layout { display: grid; grid-template-columns: minmax(190px, 0.34fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.note-page-list { display: grid; gap: 8px; }
+.note-page-tab {
+  display: grid; gap: 4px; width: 100%; padding: 11px 12px;
+  border: 1px solid var(--lijn); border-radius: 8px;
+  background: #fbf4e8; color: var(--steen-grijs); text-align: left;
+}
+.note-page-tab strong { color: var(--oven-donker); font-size: 0.9rem; }
+.note-page-tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.78rem; }
+.note-page-tab.active { border-color: rgba(122,63,36,0.45); background: var(--oven-bruin); color: var(--zout-wit); }
+.note-page-tab.active strong, .note-page-tab.active span { color: var(--zout-wit); }
+.note-page-editor { display: grid; gap: 10px; min-width: 0; }
 .general-notes-field { display: grid; gap: 8px; }
 .general-notes-field > span {
   color: var(--gist-groen); font-size: 0.82rem; font-weight: 900; text-transform: uppercase;
 }
+.note-title-field input,
 .general-notes-field textarea {
-  width: 100%; min-height: min(56vh, 520px); resize: vertical;
-  border: 1px solid var(--lijn); border-radius: 8px;
+  width: 100%; border: 1px solid var(--lijn); border-radius: 8px;
   background: #fbf4e8; color: var(--oven-donker);
-  padding: 14px; font: inherit; line-height: 1.55;
+  padding: 11px 12px; font: inherit; line-height: 1.55;
 }
+.general-notes-field textarea { min-height: min(56vh, 520px); resize: vertical; padding: 14px; }
+.note-title-field input:focus,
 .general-notes-field textarea:focus { outline: 2px solid rgba(111,127,77,0.22); border-color: rgba(111,127,77,0.5); }
+.note-editor-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 
 /* ── Werkbench scherm ────────────────────────────────────────────────────── */
 .workbench-screen {
@@ -722,4 +737,11 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
 @media (max-width: 600px) {
   .main-nav:not(:has([data-go-back])) { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
   .main-nav:has([data-go-back]) { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 760px) {
+  .notes-layout { grid-template-columns: 1fr; }
+  .note-page-list { display: flex; overflow-x: auto; padding-bottom: 4px; }
+  .note-page-tab { min-width: 170px; }
+  .notes-header { grid-template-columns: minmax(0, 1fr) auto !important; }
 }
