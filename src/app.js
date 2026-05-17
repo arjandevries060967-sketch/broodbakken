@@ -256,7 +256,30 @@ async function updatePassword(password) {
   const { error } = await db.auth.updateUser({ password });
   return error?.message || null;
 }
-async function signOut() { await db.auth.signOut(); }
+function resetSignedOutState() {
+  state.user = null;
+  state.recipes = [];
+  state.selectedRecipeId = "";
+  state.library = [];
+  state.libraryError = "";
+  state.notePages = [];
+  state.selectedNotePageId = "";
+  state.noteSearch = "";
+  state.generalNotesError = "";
+  state.supportTickets = [];
+  state.supportError = "";
+  state.isDeveloper = false;
+  state.screen = "myrecipes";
+  state.authView = "login";
+  state.profile = { display_name: "", avatar_url: "" };
+}
+
+async function signOut() {
+  state.saveMessage = "";
+  resetSignedOutState();
+  render();
+  await withTimeout(db.auth.signOut(), "", 5000);
+}
 
 // ─── Database ─────────────────────────────────────────────────────────────────
 async function loadRecipesFromDB() {
