@@ -196,6 +196,9 @@ async function loadSignedInData() {
   ]);
   const failed = results.find((result) => result.status === "rejected" || result.value?.timeoutError);
   if (failed) state.saveMessage = failed.reason?.message || failed.value?.timeoutError || "Niet alle gegevens konden worden geladen";
+  else if (state.saveMessage === "Gegevens laden...") state.saveMessage = "";
+  saveAutomaticBackup("auto");
+  loadServerBackups().then(() => render());
 }
 
 async function initAuth() {
@@ -212,7 +215,8 @@ async function initAuth() {
       if (isPasswordRecoveryUrl()) {
         state.authView = "reset";
       } else {
-        await loadSignedInData();
+        state.saveMessage = "Gegevens laden...";
+        loadSignedInData().then(render);
       }
     }
   } catch (error) {
@@ -232,6 +236,9 @@ async function initAuth() {
     } else if (event === "SIGNED_IN" && session?.user) {
       state.user = session.user;
       if (state.authView === "reset") { renderAuthScreen(); return; }
+      state.screen = "myrecipes";
+      state.saveMessage = "Gegevens laden...";
+      render();
       await loadSignedInData();
       render();
     } else if (event === "SIGNED_OUT") {
@@ -263,13 +270,13 @@ function withTimeout(promise, message = "Supabase reageert niet. Probeer het zo 
 
 async function signIn(email, password) {
   const result = await withTimeout(db.auth.signInWithPassword({ email, password }), "Inloggen duurt te lang. Probeer opnieuw.");
-  if (result.timeoutError) return result.timeoutError;
-  return result.error?.message || null;
+  if (result.timeoutError) return { error: result.timeoutError };
+  return { error: result.error?.message || null, user: result.data?.user || result.data?.session?.user || null };
 }
 async function signUp(email, password) {
   const result = await withTimeout(db.auth.signUp({ email, password }), "Account aanmaken duurt te lang. Controleer of het Supabase profiles-script is uitgevoerd en probeer opnieuw.");
-  if (result.timeoutError) return result.timeoutError;
-  return result.error?.message || null;
+  if (result.timeoutError) return { error: result.timeoutError };
+  return { error: result.error?.message || null, user: result.data?.user || result.data?.session?.user || null };
 }
 async function requestPasswordReset(email) {
   const redirectTo = window.location.origin + window.location.pathname + "?type=recovery";
@@ -313,16 +320,12 @@ async function loadRecipesFromDB() {
     state.recipes = [];
     state.selectedRecipeId = "";
     state.categories = getCategoriesFromRecipes(state.recipes);
-    await saveAutomaticBackup("auto");
-    await loadServerBackups();
     state.backupReminderDismissed = readBackupReminderDismissed();
     return;
   }
   state.recipes = data.map(dbToLocal);
   state.selectedRecipeId = state.recipes[0]?.id || "";
   state.categories = getCategoriesFromRecipes(state.recipes);
-  await saveAutomaticBackup("auto");
-  await loadServerBackups();
   state.backupReminderDismissed = readBackupReminderDismissed();
 }
 
@@ -1346,10 +1349,15 @@ function bindAuthEvents() {
       const repeat = document.getElementById("auth-password-repeat")?.value || "";
       if (password !== repeat) { state.saveMessage = "De wachtwoorden zijn niet gelijk"; renderAuthScreen(); return; }
     }
-    const error = state.authView === "login" ? await signIn(email, password) : await signUp(email, password);
+    const result = state.authView === "login" ? await signIn(email, password) : await signUp(email, password);
+    const error = result.error;
     if (!error && state.authView === "register") { state.saveMessage = "Account aangemaakt — controleer je e-mail en log daarna in."; state.authView = "login"; renderAuthScreen(); return; }
     if (error) { state.saveMessage = error; renderAuthScreen(); return; }
-    renderAuthScreen();
+    state.user = result.user || state.user;
+    state.screen = "myrecipes";
+    state.saveMessage = "Gegevens laden...";
+    render();
+    loadSignedInData().then(render);
   });
   document.getElementById("auth-email")?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") document.getElementById("auth-password")?.focus() || document.getElementById("auth-submit").click();
