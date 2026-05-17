@@ -976,21 +976,26 @@ async function submitSupportTicket(form) {
   state.supportLoading = true;
   state.supportError = "";
   render();
-  const { error } = await db.from("support_tickets").insert({
+  const { data, error } = await db.from("support_tickets").insert({
     user_id: state.user.id,
     user_email: state.user.email,
     subject,
     message,
     category,
     priority,
-  });
+  }).select("id").single();
   state.supportLoading = false;
   if (error) {
     state.supportError = `Ticket versturen mislukt: ${error.message}`;
     render();
     return;
   }
-  state.saveMessage = "Supportvraag verstuurd";
+  const { error: notifyError } = await db.functions.invoke("notify-support-ticket", {
+    body: { ticketId: data.id },
+  });
+  state.saveMessage = notifyError
+    ? "Supportvraag verstuurd, maar mailmelding niet gelukt"
+    : "Supportvraag verstuurd";
   await loadSupportTickets();
 }
 
