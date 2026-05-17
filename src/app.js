@@ -128,6 +128,7 @@ const state = {
   supportTickets: [],
   supportLoading: false,
   supportError: "",
+  supportDraft: { category: "Vraag", priority: "Normaal", subject: "", message: "" },
   isDeveloper: false,
   backups: [],
   backupSyncStatus: "",
@@ -268,6 +269,7 @@ async function initAuth() {
       state.generalNotesError = "";
       state.supportTickets = [];
       state.supportError = "";
+      state.supportDraft = { category: "Vraag", priority: "Normaal", subject: "", message: "" };
       state.isDeveloper = false;
       state.screen = "myrecipes";
       state.profile = { display_name: "", avatar_url: "" };
@@ -314,6 +316,7 @@ function resetSignedOutState() {
   state.generalNotesError = "";
   state.supportTickets = [];
   state.supportError = "";
+  state.supportDraft = { category: "Vraag", priority: "Normaal", subject: "", message: "" };
   state.isDeveloper = false;
   state.screen = "myrecipes";
   state.authView = "login";
@@ -963,11 +966,11 @@ async function loadSupportTickets() {
   render();
 }
 
-async function submitSupportTicket(form) {
-  const subject = form.subject.value.trim();
-  const message = form.message.value.trim();
-  const category = form.category.value || "Vraag";
-  const priority = form.priority.value || "Normaal";
+async function submitSupportTicket() {
+  const subject = state.supportDraft.subject.trim();
+  const message = state.supportDraft.message.trim();
+  const category = state.supportDraft.category || "Vraag";
+  const priority = state.supportDraft.priority || "Normaal";
   if (!subject || !message) {
     state.supportError = "Vul een onderwerp en bericht in.";
     render();
@@ -996,6 +999,7 @@ async function submitSupportTicket(form) {
   state.saveMessage = notifyError
     ? "Supportvraag verstuurd, maar mailmelding niet gelukt"
     : "Supportvraag verstuurd";
+  state.supportDraft = { category: "Vraag", priority: "Normaal", subject: "", message: "" };
   await loadSupportTickets();
 }
 
@@ -1104,11 +1108,11 @@ function renderSupportPanel() {
         </div>
         <form class="support-form" data-support-form>
           <div class="support-row">
-            <label><span>Categorie</span><select name="category">${SUPPORT_CATEGORIES.map((item) => `<option value="${esc(item)}">${esc(item)}</option>`).join("")}</select></label>
-            <label><span>Urgentie</span><select name="priority">${SUPPORT_PRIORITIES.map((item) => `<option value="${esc(item)}">${esc(item)}</option>`).join("")}</select></label>
+            <label><span>Categorie</span><select name="category" data-support-draft="category">${SUPPORT_CATEGORIES.map((item) => `<option value="${esc(item)}" ${state.supportDraft.category === item ? "selected" : ""}>${esc(item)}</option>`).join("")}</select></label>
+            <label><span>Urgentie</span><select name="priority" data-support-draft="priority">${SUPPORT_PRIORITIES.map((item) => `<option value="${esc(item)}" ${state.supportDraft.priority === item ? "selected" : ""}>${esc(item)}</option>`).join("")}</select></label>
           </div>
-          <label><span>Onderwerp</span><input name="subject" type="text" placeholder="Bijv. foto uploaden lukt niet" required /></label>
-          <label><span>Bericht</span><textarea name="message" placeholder="Beschrijf wat je probeerde en wat er gebeurde." required></textarea></label>
+          <label><span>Onderwerp</span><input name="subject" data-support-draft="subject" type="text" value="${esc(state.supportDraft.subject)}" placeholder="Bijv. foto uploaden lukt niet" required /></label>
+          <label><span>Bericht</span><textarea name="message" data-support-draft="message" placeholder="Beschrijf wat je probeerde en wat er gebeurde." required>${esc(state.supportDraft.message)}</textarea></label>
           <button class="tool-button primary" type="submit" ${state.supportLoading ? "disabled" : ""}>${icon("plus")}Ticket versturen</button>
         </form>
         ${state.supportError ? `<p class="support-error">${esc(state.supportError)}</p>` : ""}
@@ -2097,7 +2101,16 @@ function bindEvents() {
 
   document.querySelector("[data-support-form]")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    await submitSupportTicket(e.currentTarget);
+    await submitSupportTicket();
+  });
+
+  document.querySelectorAll("[data-support-draft]").forEach((field) => {
+    field.addEventListener("input", () => {
+      state.supportDraft[field.dataset.supportDraft] = field.value;
+    });
+    field.addEventListener("change", () => {
+      state.supportDraft[field.dataset.supportDraft] = field.value;
+    });
   });
 
   document.querySelectorAll("[data-save-ticket]").forEach((btn) => {
