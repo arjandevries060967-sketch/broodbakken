@@ -117,6 +117,11 @@ const state = {
   confirmDialog: null,
   backupPanelOpen: false,
   faqPanelOpen: false,
+  supportPanelOpen: false,
+  supportTickets: [],
+  supportLoading: false,
+  supportError: "",
+  isDeveloper: false,
   backups: [],
   backupSyncStatus: "",
   backupReminderDismissed: "",
@@ -147,6 +152,11 @@ document.addEventListener("keydown", (e) => {
   }
   if (state.faqPanelOpen) {
     state.faqPanelOpen = false;
+    render();
+    return;
+  }
+  if (state.supportPanelOpen) {
+    state.supportPanelOpen = false;
     render();
   }
 });
@@ -182,7 +192,7 @@ async function initAuth() {
     if (isPasswordRecoveryUrl()) {
       state.authView = "reset";
     } else {
-      await Promise.all([loadRecipesFromDB(), loadProfile(), loadGeneralNotes()]);
+      await Promise.all([loadRecipesFromDB(), loadProfile(), loadGeneralNotes(), loadDeveloperStatus()]);
     }
   }
   state.loading = false;
@@ -198,7 +208,7 @@ async function initAuth() {
     } else if (event === "SIGNED_IN" && session?.user) {
       state.user = session.user;
       if (state.authView === "reset") { renderAuthScreen(); return; }
-      await Promise.all([loadRecipesFromDB(), loadProfile(), loadGeneralNotes()]);
+      await Promise.all([loadRecipesFromDB(), loadProfile(), loadGeneralNotes(), loadDeveloperStatus()]);
       render();
     } else if (event === "SIGNED_OUT") {
       state.user = null;
@@ -210,6 +220,9 @@ async function initAuth() {
       state.selectedNotePageId = "";
       state.noteSearch = "";
       state.generalNotesError = "";
+      state.supportTickets = [];
+      state.supportError = "";
+      state.isDeveloper = false;
       state.screen = "myrecipes";
       state.profile = { display_name: "", avatar_url: "" };
       render();
@@ -782,7 +795,7 @@ function daysSince(value) {
 }
 
 function shouldShowBackupReminder() {
-  if (!state.user || state.recipes.length === 0 || state.backupPanelOpen || state.faqPanelOpen || state.confirmDialog) return false;
+  if (!state.user || state.recipes.length === 0 || state.backupPanelOpen || state.faqPanelOpen || state.supportPanelOpen || state.confirmDialog) return false;
   if (state.backupReminderDismissed === todayValue()) return false;
   const backups = getPanelBackups();
   const latestManual = backups.find((backup) => backup.reason === "handmatig" && backup.source === "Supabase");
@@ -829,6 +842,103 @@ const FAQ_ITEMS = [
   ["Wat gebeurt er als ik een recept verwijder?", "Het recept wordt uit je account verwijderd. Terughalen kan alleen via een eerder gemaakte backup."],
 ];
 
+const SUPPORT_CATEGORIES = ["Vraag", "Bug", "Wens", "Account", "Backup"];
+const SUPPORT_PRIORITIES = ["Normaal", "Hoog"];
+const SUPPORT_STATUSES = ["nieuw", "in_behandeling", "beantwoord", "gesloten"];
+
+function supportStatusLabel(status) {
+  return ({
+    nieuw: "Nieuw",
+    in_behandeling: "In behandeling",
+    beantwoord: "Beantwoord",
+    gesloten: "Gesloten",
+  })[status] || status || "Nieuw";
+}
+
+function formatSupportDate(value) {
+  return new Intl.DateTimeFormat("nl-NL", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
+
+async function loadDeveloperStatus() {
+  state.isDeveloper = false;
+  if (!state.user?.email) return;
+  const { data, error } = await db
+    .from("app_developers")
+    .select("email")
+    .ilike("email", state.user.email)
+    .maybeSingle();
+  state.isDeveloper = !error && !!data;
+}
+
+async function loadSupportTickets() {
+  state.supportLoading = true;
+  state.supportError = "";
+  render();
+  const { data, error } = await db
+    .from("support_tickets")
+    .select("id,user_id,user_email,subject,message,category,priority,status,developer_reply,created_at,updated_at")
+    .order("created_at", { ascending: false })
+    .limit(50);
+  state.supportLoading = false;
+  if (error) {
+    state.supportError = "Supporttickets laden lukt nog niet. Voer eerst het Supabase SQL-script uit.";
+    state.supportTickets = [];
+  } else {
+    state.supportTickets = data || [];
+  }
+  render();
+}
+
+async function submitSupportTicket(form) {
+  const subject = form.subject.value.trim();
+  const message = form.message.value.trim();
+  const category = form.category.value || "Vraag";
+  const priority = form.priority.value || "Normaal";
+  if (!subject || !message) {
+    state.supportError = "Vul een onderwerp en bericht in.";
+    render();
+    return;
+  }
+  state.supportLoading = true;
+  state.supportError = "";
+  render();
+  const { error } = await db.from("support_tickets").insert({
+    user_id: state.user.id,
+    user_email: state.user.email,
+    subject,
+    message,
+    category,
+    priority,
+  });
+  state.supportLoading = false;
+  if (error) {
+    state.supportError = `Ticket versturen mislukt: ${error.message}`;
+    render();
+    return;
+  }
+  state.saveMessage = "Supportvraag verstuurd";
+  await loadSupportTickets();
+}
+
+async function updateSupportTicket(ticketId) {
+  const status = document.querySelector(`[data-ticket-status="${ticketId}"]`)?.value || "nieuw";
+  const reply = document.querySelector(`[data-ticket-reply="${ticketId}"]`)?.value || "";
+  state.supportLoading = true;
+  state.supportError = "";
+  render();
+  const { error } = await db
+    .from("support_tickets")
+    .update({ status, developer_reply: reply, updated_at: new Date().toISOString() })
+    .eq("id", ticketId);
+  state.supportLoading = false;
+  if (error) {
+    state.supportError = `Ticket bijwerken mislukt: ${error.message}`;
+    render();
+    return;
+  }
+  state.saveMessage = "Supportticket bijgewerkt";
+  await loadSupportTickets();
+}
 function renderBackupPanel() {
   if (!state.backupPanelOpen) return "";
   const backups = getPanelBackups();
@@ -885,6 +995,55 @@ function renderFaqPanel() {
     </div>`;
 }
 
+function renderSupportPanel() {
+  if (!state.supportPanelOpen) return "";
+  return `
+    <div class="confirm-backdrop" data-support-backdrop role="dialog" aria-modal="true" aria-label="Supportvraag stellen">
+      <section class="backup-panel support-panel">
+        <div class="backup-panel-head">
+          <div>
+            <h3>Support / vraag stellen</h3>
+            <p>Stuur een vraag, foutmelding of wens rechtstreeks naar de developer.</p>
+          </div>
+          <button class="icon-action" data-close-support-panel type="button" aria-label="Sluit supportvenster">&times;</button>
+        </div>
+        <form class="support-form" data-support-form>
+          <div class="support-row">
+            <label><span>Categorie</span><select name="category">${SUPPORT_CATEGORIES.map((item) => `<option value="${esc(item)}">${esc(item)}</option>`).join("")}</select></label>
+            <label><span>Urgentie</span><select name="priority">${SUPPORT_PRIORITIES.map((item) => `<option value="${esc(item)}">${esc(item)}</option>`).join("")}</select></label>
+          </div>
+          <label><span>Onderwerp</span><input name="subject" type="text" placeholder="Bijv. foto uploaden lukt niet" required /></label>
+          <label><span>Bericht</span><textarea name="message" placeholder="Beschrijf wat je probeerde en wat er gebeurde." required></textarea></label>
+          <button class="tool-button primary" type="submit" ${state.supportLoading ? "disabled" : ""}>${icon("plus")}Ticket versturen</button>
+        </form>
+        ${state.supportError ? `<p class="support-error">${esc(state.supportError)}</p>` : ""}
+        <div class="support-ticket-list">
+          <div class="support-list-head">
+            <h4>${state.isDeveloper ? "Alle supporttickets" : "Mijn supporttickets"}</h4>
+            <button class="tool-button" data-refresh-support type="button" ${state.supportLoading ? "disabled" : ""}>Vernieuwen</button>
+          </div>
+          ${state.supportLoading ? `<p class="empty-state">Supporttickets laden...</p>` : state.supportTickets.length ? state.supportTickets.map((ticket) => `
+            <article class="support-ticket">
+              <div class="support-ticket-head">
+                <div>
+                  <strong>${esc(ticket.subject)}</strong>
+                  <small>${esc(formatSupportDate(ticket.created_at))} · ${esc(ticket.category)} · ${esc(ticket.priority)}${state.isDeveloper ? ` · ${esc(ticket.user_email)}` : ""}</small>
+                </div>
+                <span class="support-status status-${esc(ticket.status)}">${esc(supportStatusLabel(ticket.status))}</span>
+              </div>
+              <p>${esc(ticket.message)}</p>
+              ${ticket.developer_reply ? `<div class="support-reply"><strong>Reactie developer</strong><p>${esc(ticket.developer_reply)}</p></div>` : ""}
+              ${state.isDeveloper ? `
+                <div class="support-admin">
+                  <label><span>Status</span><select data-ticket-status="${esc(ticket.id)}">${SUPPORT_STATUSES.map((status) => `<option value="${esc(status)}" ${ticket.status === status ? "selected" : ""}>${esc(supportStatusLabel(status))}</option>`).join("")}</select></label>
+                  <label><span>Reactie</span><textarea data-ticket-reply="${esc(ticket.id)}">${esc(ticket.developer_reply || "")}</textarea></label>
+                  <button class="tool-button primary" data-save-ticket="${esc(ticket.id)}" type="button">Opslaan</button>
+                </div>` : ""}
+            </article>`).join("") : `<p class="empty-state">Nog geen supporttickets. Stel hierboven je eerste vraag.</p>`}
+        </div>
+      </section>
+    </div>`;
+}
 function downloadExcelBackup() {
   if (!window.XLSX) {
     state.saveMessage = "Excel-backup niet geladen. Controleer je internetverbinding en probeer opnieuw.";
@@ -1029,6 +1188,7 @@ function renderTopbar(showBack = false, backLabel = "") {
             <button class="tool-button wide" data-online-backup type="button">${icon("save")}Online backup maken</button>
             <button class="tool-button wide" data-open-backup-panel type="button">${icon("plus")}Backup terugzetten</button>
             <button class="tool-button wide" data-open-faq-panel type="button">${icon("book")}Veelgestelde vragen</button>
+            <button class="tool-button wide" data-open-support-panel type="button">${icon("note")}Support / vraag stellen</button>
           </div>
         </details>
         <button class="avatar-btn" data-screen="profile" title="Profiel">${avatarHtml}</button>
@@ -1605,7 +1765,7 @@ function render() {
   else if (state.screen === "notes") root.innerHTML = renderNotes();
   else if (state.screen === "profile") root.innerHTML = renderProfile();
 
-  root.insertAdjacentHTML("beforeend", renderPhotoPreview() + renderBackupPanel() + renderFaqPanel() + renderConfirmDialog() + renderBackupReminder() + renderAppToast());
+  root.insertAdjacentHTML("beforeend", renderPhotoPreview() + renderBackupPanel() + renderFaqPanel() + renderSupportPanel() + renderConfirmDialog() + renderBackupReminder() + renderAppToast());
   bindEvents();
 }
 
@@ -1794,6 +1954,33 @@ function bindEvents() {
   document.querySelector("[data-close-faq-panel]")?.addEventListener("click", () => {
     state.faqPanelOpen = false;
     render();
+  });
+
+  document.querySelector("[data-open-support-panel]")?.addEventListener("click", async () => {
+    state.supportPanelOpen = true;
+    await loadSupportTickets();
+  });
+
+  document.querySelector("[data-support-backdrop]")?.addEventListener("click", (e) => {
+    if (e.target !== e.currentTarget) return;
+    state.supportPanelOpen = false;
+    render();
+  });
+
+  document.querySelector("[data-close-support-panel]")?.addEventListener("click", () => {
+    state.supportPanelOpen = false;
+    render();
+  });
+
+  document.querySelector("[data-refresh-support]")?.addEventListener("click", loadSupportTickets);
+
+  document.querySelector("[data-support-form]")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    await submitSupportTicket(e.currentTarget);
+  });
+
+  document.querySelectorAll("[data-save-ticket]").forEach((btn) => {
+    btn.addEventListener("click", () => updateSupportTicket(btn.dataset.saveTicket));
   });
 
   document.querySelector("[data-backup-backdrop]")?.addEventListener("click", (e) => {

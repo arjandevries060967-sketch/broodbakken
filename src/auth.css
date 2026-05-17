@@ -794,3 +794,6 @@ select {
   .tabbar { gap: 5px; padding: 5px; }
   .tabbar button { min-height: 38px; padding: 8px 7px; font-size: 0.8rem; }
 }
+
+/* Supporttickets */
+.support-panel { width: min(760px, calc(100vw - 28px)); max-height: min(86vh, 860px); }
