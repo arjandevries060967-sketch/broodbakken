@@ -1644,6 +1644,13 @@ function renderWorkbench() {
                   <button class="tool-button" data-add-category type="button">${icon("plus")}Toevoegen</button>
                 </div>
               </label>
+              <label class="description-field dictation-field">
+                <span class="field-header">Beschrijving
+                  <button class="dictate-button" data-dictate-target="[data-recipe-description]" type="button">${icon("mic")}Inspreken</button>
+                </span>
+                <textarea data-recipe-description rows="3" placeholder="Korte omschrijving voor je receptenoverzicht en de bibliotheek.">${esc(recipe.description || "")}</textarea>
+                <small class="dictation-status" data-dictation-status></small>
+              </label>
             </div>
           </div>
 
@@ -2438,6 +2445,9 @@ function bindEvents() {
   });
   document.querySelector("[data-recipe-category]")?.addEventListener("change", (e) => {
     getSelectedRecipe().category = e.target.value; markUnsaved();
+  });
+  document.querySelector("[data-recipe-description]")?.addEventListener("input", (e) => {
+    getSelectedRecipe().description = e.target.value; markUnsaved();
   });
   document.querySelector("[data-recipe-method]")?.addEventListener("input", (e) => {
     getSelectedRecipe().method = e.target.value; markUnsaved();
