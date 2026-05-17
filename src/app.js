@@ -37,13 +37,15 @@ const FLOUR_LIBRARY = [
 const ADDITION_LIBRARY = [
   "Water",
   "Zout",
-  "Gist",
+  "Gist gedroogd",
+  "Gist vers",
   "Zuurdesemstarter",
   "Olijfolie",
   "Boter",
   "Melk",
   "Honing",
-  "Suiker",
+  "Basterdsuiker",
+  "Kristalsuiker",
   "Moutpoeder / moutmeel",
   "Zonnebloempitten",
   "Pompoenpitten",
@@ -62,7 +64,7 @@ const SEED_RECIPES = [
     ingredients: [
       { name: "T65 label rouge", percentage: 1, unit: "g" },
       { name: "Water", percentage: 0.65, unit: "g" },
-      { name: "Gedroogde gist", percentage: 0.015, unit: "g" },
+      { name: "Gist gedroogd", percentage: 0.015, unit: "g" },
       { name: "Basterdsuiker", percentage: 0.015, unit: "g" },
       { name: "Boter", percentage: 0.015, unit: "g" },
       { name: "Zout", percentage: 0.018, unit: "g" },
@@ -78,7 +80,7 @@ const SEED_RECIPES = [
       { name: "T65 label rouge", percentage: 0.65, unit: "g" },
       { name: "Tarwe volkoren Molensteen", percentage: 0.35, unit: "g" },
       { name: "Water", percentage: 0.68, unit: "g" },
-      { name: "Gedroogde gist", percentage: 0.015, unit: "g" },
+      { name: "Gist gedroogd", percentage: 0.015, unit: "g" },
       { name: "Broodpoeder", percentage: 0.03, unit: "g" },
       { name: "Basterdsuiker", percentage: 0.015, unit: "g" },
       { name: "Zout", percentage: 0.018, unit: "g" },
@@ -1195,7 +1197,7 @@ function renderMyRecipes() {
           ? `<p class="empty-state">Geen recepten gevonden.</p>`
           : `<div class="tile-grid">
               ${filtered.map((r) => `
-                <article class="recipe-tile">
+                <article class="recipe-tile" data-open-recipe-card="${esc(r.id)}" tabindex="0">
                   ${r.photoUrl ? `<img class="recipe-tile-photo" src="${esc(r.photoUrl)}" alt="${esc(r.name)}" loading="lazy" />` : ""}
                   <div class="recipe-tile-body">
                     <div class="recipe-tile-top">
@@ -1402,26 +1404,19 @@ function renderWorkbench() {
                   <button class="tool-button" data-add-category type="button">${icon("plus")}Toevoegen</button>
                 </div>
               </label>
-              <label class="description-field">
-                <span class="field-header">Korte omschrijving
-                  <button class="dictate-button" data-dictate-target="[data-recipe-description]" type="button">${icon("mic")}Inspreken</button>
-                </span>
-                <textarea data-recipe-description rows="2" placeholder="Korte omschrijving van dit recept">${esc(recipe.description || "")}</textarea>
-                <small class="dictation-status" data-dictation-status></small>
-              </label>
             </div>
-          </div>
-
-          <div class="metric-row">
-            <div>${icon("grain")}<span>Bloem/meel</span><strong data-flour-display>${fmtW(flourTotal)}</strong></div>
-            <div>${icon("flame")}<span>Hydratatie</span><strong data-hydration>${fmtPct(hydration)}</strong></div>
-            <div>${icon("scale")}<span>Deeggewicht</span><strong data-dough-weight>${fmtW(totalDoughWeight)}</strong></div>
           </div>
 
           <div class="tabbar" role="tablist">
             <button class="${state.activeTab === "ingredients" ? "active" : ""}" data-tab="ingredients" type="button">Ingrediënten</button>
             <button class="${state.activeTab === "method" ? "active" : ""}" data-tab="method" type="button">Werkwijze</button>
             <button class="${state.activeTab === "logbook" ? "active" : ""}" data-tab="logbook" type="button">Logboek</button>
+          </div>
+
+          <div class="metric-row">
+            <div>${icon("grain")}<span>Bloem/meel</span><strong data-flour-display>${fmtW(flourTotal)}</strong></div>
+            <div>${icon("flame")}<span>Hydratatie</span><strong data-hydration>${fmtPct(hydration)}</strong></div>
+            <div>${icon("scale")}<span>Deeggewicht</span><strong data-dough-weight>${fmtW(totalDoughWeight)}</strong></div>
           </div>
 
           ${state.activeTab === "ingredients" ? `
@@ -1443,12 +1438,13 @@ function renderWorkbench() {
                 <div class="table-wrap">
                   ${flours.length === 0 ? `
                     <p class="empty-state" style="padding:10px 0">Nog geen meelsoort toegevoegd — klik op de knop hieronder.</p>
-                  ` : `<table>
+                  ` : `<table class="ingredients-table">
+                    <colgroup><col class="col-name"><col class="col-percent"><col class="col-amount"><col class="col-action"></colgroup>
                     <thead><tr><th>Meelsoort</th><th>Percentage</th><th>Hoeveelheid</th><th></th></tr></thead>
                     <tbody>
                       ${flours.map((ing) => `
                         <tr>
-                          <td><input class="material-input" list="flour-library" data-flour-index="${ing.index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. T65 label rouge" /></td>
+                          <td><label class="material-combo"><input class="material-input" list="flour-library" data-flour-index="${ing.index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. Tarwebloem" /></label></td>
                           <td><label class="number-cell"><input data-flour-index="${ing.index}" data-kind="percentage" inputmode="decimal" min="0" max="100" step="0.1" type="number" value="${ing.percentage > 0 ? fmt(ing.percentage, 1) : ""}" placeholder="%" /><span>%</span></label></td>
                           <td><label class="number-cell amount-cell"><input data-flour-index="${ing.index}" data-kind="amount" inputmode="decimal" min="0" step="0.1" type="number" value="${ing.amount > 0 ? fmt(ing.amount, 1) : ""}" placeholder="g" /><span>g</span></label></td>
                           <td><button class="icon-action danger" data-delete-flour="${ing.index}" type="button">${icon("trash")}</button></td>
@@ -1464,12 +1460,13 @@ function renderWorkbench() {
                 <div class="table-wrap">
                   ${additions.length === 0 ? `
                     <p class="empty-state" style="padding:10px 0">Nog geen toevoeging toegevoegd — klik op de knop hieronder.</p>
-                  ` : `<table>
+                  ` : `<table class="ingredients-table">
+                    <colgroup><col class="col-name"><col class="col-percent"><col class="col-amount"><col class="col-action"></colgroup>
                     <thead><tr><th>Ingrediënt</th><th>Percentage</th><th>Hoeveelheid</th><th></th></tr></thead>
                     <tbody>
                       ${additions.map((ing) => `
                         <tr>
-                          <td><input class="material-input" list="addition-library" data-addition-index="${ing.index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. water" /></td>
+                          <td><label class="material-combo"><input class="material-input" list="addition-library" data-addition-index="${ing.index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. Water" /></label></td>
                           <td><label class="number-cell"><input data-addition-index="${ing.index}" data-kind="percentage" inputmode="decimal" min="0" step="0.1" type="number" value="${ing.percentage > 0 ? fmt(ing.percentage, 1) : ""}" placeholder="%" /><span>%</span></label></td>
                           <td><label class="number-cell amount-cell"><input data-addition-index="${ing.index}" data-kind="amount" readonly tabindex="-1" type="number" value="${ing.amount > 0 ? fmt(ing.amount, 1) : ""}" placeholder="–" /><span>g</span></label></td>
                           <td><button class="icon-action danger" data-delete-addition="${ing.index}" type="button">${icon("trash")}</button></td>
@@ -2031,16 +2028,33 @@ function bindEvents() {
     }
   });
 
+  function openRecipeFromTile(id) {
+    state.selectedRecipeId = id;
+    state.screen = "workbench";
+    state.activeTab = "ingredients";
+    state.saveMessage = "";
+    const recipe = getSelectedRecipe();
+    if (recipe) { recipe.lastUsedAt = Date.now(); saveRecipeToDB(recipe); }
+    render();
+  }
+
+  document.querySelectorAll("[data-open-recipe-card]").forEach((card) => {
+    card.addEventListener("click", (e) => {
+      if (e.target.closest("button, a, input, select, textarea, summary, details, label")) return;
+      openRecipeFromTile(card.dataset.openRecipeCard);
+    });
+    card.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      if (e.target.closest("button, a, input, select, textarea, summary, details, label")) return;
+      e.preventDefault();
+      openRecipeFromTile(card.dataset.openRecipeCard);
+    });
+  });
+
   document.querySelectorAll("[data-open-recipe]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      state.selectedRecipeId = btn.dataset.openRecipe;
-      state.screen = "workbench";
-      state.activeTab = "ingredients";
-      state.saveMessage = "";
-      const recipe = getSelectedRecipe();
-      if (recipe) { recipe.lastUsedAt = Date.now(); saveRecipeToDB(recipe); }
-      render();
+      openRecipeFromTile(btn.dataset.openRecipe);
     });
   });
 
@@ -2157,9 +2171,6 @@ function bindEvents() {
   });
   document.querySelector("[data-recipe-category]")?.addEventListener("change", (e) => {
     getSelectedRecipe().category = e.target.value; markUnsaved();
-  });
-  document.querySelector("[data-recipe-description]")?.addEventListener("input", (e) => {
-    getSelectedRecipe().description = e.target.value; markUnsaved();
   });
   document.querySelector("[data-recipe-method]")?.addEventListener("input", (e) => {
     getSelectedRecipe().method = e.target.value; markUnsaved();

@@ -97,13 +97,6 @@ h2 { font-size: clamp(1.1rem, 3vw, 1.8rem); }
 .metric-row span { font-size: 0.72rem; font-weight: 700; color: var(--gist-groen); text-transform: uppercase; }
 .metric-row strong { font-size: 1.2rem; font-weight: 800; color: var(--oven-donker); font-variant-numeric: tabular-nums; }
 
-.tabbar { display: flex; border-bottom: 2px solid var(--lijn); margin-bottom: 16px; }
-.tabbar button {
-  padding: 10px 16px; border: 0; border-bottom: 2px solid transparent;
-  border-radius: 0; background: transparent; color: var(--steen-grijs);
-  font-size: 0.9rem; font-weight: 700; margin-bottom: -2px;
-}
-.tabbar button.active { color: var(--oven-donker); border-bottom-color: var(--oven-bruin); }
 
 .recipe-header {
   display: grid;
@@ -165,8 +158,14 @@ table { width: 100%; border-collapse: collapse; background: var(--zout-wit); fon
 th, td { padding: 8px 10px; border-top: 1px solid var(--lijn); text-align: left; vertical-align: middle; }
 th { color: var(--gist-groen); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
 
+.material-combo { position: relative; display: block; }
+.material-combo::after {
+  content: ""; position: absolute; right: 10px; top: 50%; transform: translateY(-35%);
+  border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--gist-groen);
+  pointer-events: none; opacity: 0.95;
+}
 .material-input {
-  width: 100%; min-height: 32px; padding: 5px 8px;
+  width: 100%; min-height: 32px; padding: 5px 28px 5px 8px;
   border: 1px solid rgba(122,63,36,0.18); border-radius: 6px;
   background: #fbf4e8; color: var(--oven-donker); font-size: 0.86rem; font-weight: 700; min-width: 0;
 }

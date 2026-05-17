@@ -61,6 +61,9 @@
   border-radius: var(--radius); background: #fbf4e8;
   min-width: 0;
 }
+.recipe-tile[data-open-recipe-card] { cursor: pointer; }
+.recipe-tile[data-open-recipe-card]:hover { border-color: rgba(122,63,36,0.34); box-shadow: 0 10px 26px rgba(75,40,27,0.08); }
+.recipe-tile[data-open-recipe-card]:focus-visible { outline: 3px solid rgba(122,63,36,0.22); outline-offset: 3px; }
 
 .recipe-tile-photo { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 7px; border: 1px solid var(--lijn); background: var(--meel); }
 .recipe-tile-body { display: grid; gap: 5px; min-width: 0; }
@@ -305,8 +308,31 @@
   background: var(--zout-wit); box-shadow: var(--schaduw);
 }
 
+.tabbar {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
+  padding: 6px; margin: 0 0 12px;
+  border: 1px solid var(--lijn); border-radius: var(--radius);
+  background: var(--meel);
+}
+.tabbar button {
+  min-height: 40px; padding: 9px 12px;
+  border: 1px solid transparent; border-radius: 7px;
+  background: transparent; color: var(--steen-grijs);
+  font-size: 0.9rem; font-weight: 900;
+}
+.tabbar button.active {
+  background: var(--oven-bruin); color: var(--zout-wit);
+  border-color: rgba(122,63,36,0.28);
+  box-shadow: 0 8px 18px rgba(75,40,27,0.12);
+}
+
 /* ── Ingrediënten secties ────────────────────────────────────────────────── */
 .ingredients-section { display: grid; gap: 20px; }
+.ingredients-table { table-layout: fixed; min-width: 620px; }
+.ingredients-table .col-name { width: 52%; }
+.ingredients-table .col-percent { width: 20%; }
+.ingredients-table .col-amount { width: 22%; }
+.ingredients-table .col-action { width: 44px; }
 .ingredients-group {
   border: 1px solid var(--lijn); border-radius: var(--radius);
   padding: 14px; background: var(--meel);
@@ -753,4 +779,18 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
   .note-page-list { display: flex; overflow-x: auto; padding-bottom: 4px; }
   .note-page-tab { min-width: 170px; }
   .notes-header { grid-template-columns: minmax(0, 1fr) auto !important; }
+}
+
+select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--gist-groen) 50%), linear-gradient(135deg, var(--gist-groen) 50%, transparent 50%) !important;
+  background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50% !important;
+  background-size: 5px 5px, 5px 5px !important;
+  background-repeat: no-repeat !important;
+  padding-right: 30px !important;
+}
+
+@media (max-width: 600px) {
+  .tabbar { gap: 5px; padding: 5px; }
+  .tabbar button { min-height: 38px; padding: 8px 7px; font-size: 0.8rem; }
 }
