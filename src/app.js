@@ -202,28 +202,33 @@ async function loadSignedInData() {
 }
 
 async function initAuth() {
+  state.loading = false;
+  render();
+
   try {
     const recoveryError = await exchangeRecoveryCodeIfPresent();
     if (recoveryError) {
       state.authView = "forgot";
       state.saveMessage = recoveryError;
+      render();
     }
-    const sessionResult = await withTimeout(db.auth.getSession(), "Sessie laden duurt te lang", 10000);
+    const sessionResult = await withTimeout(db.auth.getSession(), "", 4000);
     const session = sessionResult.timeoutError ? null : sessionResult.data?.session;
     if (session?.user) {
       state.user = session.user;
       if (isPasswordRecoveryUrl()) {
         state.authView = "reset";
+        renderAuthScreen();
       } else {
+        state.screen = "myrecipes";
         state.saveMessage = "Gegevens laden...";
+        render();
         loadSignedInData().then(render);
       }
     }
   } catch (error) {
-    state.saveMessage = error?.message || "Opstarten mislukt. Probeer opnieuw te laden.";
-  } finally {
-    state.loading = false;
-    render();
+    state.saveMessage = error?.message || "Sessie controleren mislukt. Je kunt opnieuw inloggen.";
+    renderAuthScreen();
   }
 
   db.auth.onAuthStateChange(async (event, session) => {
