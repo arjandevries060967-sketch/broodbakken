@@ -1,6 +1,13 @@
 // ─── Supabase ────────────────────────────────────────────────────────────────
 const SUPABASE_URL = "https://hyoicgalewuficlmancd.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5b2ljZ2FsZXd1ZmljbG1hbmNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NjgwNzIsImV4cCI6MjA5NDM0NDA3Mn0.8O7X9SObL2um55BiAuwQwQadQ8v4WmHkdqnQwEttLp4";
+if (!window.supabase?.createClient) {
+  const rootEl = document.querySelector("#root");
+  if (rootEl) {
+    rootEl.innerHTML = '<div class="auth-shell"><div class="auth-card"><div class="auth-form-wrap"><h2>App kon niet laden</h2><p class="auth-error">Supabase is niet geladen. Controleer je internetverbinding en ververs de pagina.</p></div></div></div>';
+  }
+  throw new Error("Supabase client is niet geladen");
+}
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── Constanten ───────────────────────────────────────────────────────────────
@@ -2637,4 +2644,13 @@ function startDictation(button) {
 }
 
 // ─── Start ────────────────────────────────────────────────────────────────────
-initAuth();
+initAuth().catch((error) => {
+  state.loading = false;
+  state.user = null;
+  state.authView = "login";
+  state.saveMessage = error?.message || "De app kon niet opstarten.";
+  try { renderAuthScreen(); }
+  catch {
+    root.innerHTML = '<div class="auth-shell"><div class="auth-card"><div class="auth-form-wrap"><h2>App kon niet laden</h2><p class="auth-error">Ververs de pagina of probeer het later opnieuw.</p></div></div></div>';
+  }
+});
