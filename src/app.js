@@ -1219,7 +1219,10 @@ function renderAuthScreen() {
               <button class="tool-button primary auth-submit" id="auth-submit">Wachtwoord opslaan</button>
             ` : `
               <label><span>E-mailadres</span><input id="auth-email" type="email" placeholder="jouw@email.nl" autocomplete="email" /></label>
-              ${isForgot ? "" : `<label><span>Wachtwoord</span><input id="auth-password" type="password" placeholder="minimaal 6 tekens" autocomplete="${isLogin ? "current-password" : "new-password"}" /></label>`}
+              ${isForgot ? "" : `
+                <label><span>Wachtwoord</span><input id="auth-password" type="password" placeholder="minimaal 6 tekens" autocomplete="${isLogin ? "current-password" : "new-password"}" /></label>
+                ${isLogin ? "" : `<label><span>Herhaal wachtwoord</span><input id="auth-password-repeat" type="password" placeholder="nog een keer" autocomplete="new-password" /></label>`}
+              `}
               <button class="tool-button primary auth-submit" id="auth-submit">${isForgot ? "Herstellink sturen" : isLogin ? "Inloggen" : "Account aanmaken"}</button>
             `}
           </div>
@@ -1280,6 +1283,11 @@ function bindAuthEvents() {
 
     const password = document.getElementById("auth-password").value;
     if (!password) { state.saveMessage = "Vul e-mailadres en wachtwoord in"; renderAuthScreen(); return; }
+    if (!isLogin && password.length < 6) { state.saveMessage = "Kies een wachtwoord van minimaal 6 tekens"; renderAuthScreen(); return; }
+    if (!isLogin) {
+      const repeat = document.getElementById("auth-password-repeat")?.value || "";
+      if (password !== repeat) { state.saveMessage = "De wachtwoorden zijn niet gelijk"; renderAuthScreen(); return; }
+    }
     const error = state.authView === "login" ? await signIn(email, password) : await signUp(email, password);
     if (!error && state.authView === "register") { state.saveMessage = "Account aangemaakt — controleer je e-mail en log daarna in."; state.authView = "login"; renderAuthScreen(); return; }
     if (error) { state.saveMessage = error; renderAuthScreen(); }
