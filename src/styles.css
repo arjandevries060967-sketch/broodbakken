@@ -45,10 +45,10 @@ h2 { font-size: clamp(1.1rem, 3vw, 1.8rem); }
 
 .topbar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(240px, 1fr) auto auto;
   align-items: center;
-  gap: 12px 18px;
-  padding: 14px 18px 12px;
+  gap: 12px;
+  padding: 12px 18px;
   background: var(--zout-wit); border: 1px solid var(--lijn);
   border-radius: var(--radius); box-shadow: var(--schaduw);
 }
@@ -56,7 +56,7 @@ h2 { font-size: clamp(1.1rem, 3vw, 1.8rem); }
 .brand-lockup { display: flex; align-items: center; gap: 14px; }
 .brand-mark {
   display: grid; place-items: center;
-  width: clamp(42px, 5vw, 58px); aspect-ratio: 1;
+  width: clamp(40px, 4vw, 52px); aspect-ratio: 1;
   border: 2px solid rgba(111,127,77,0.22); border-radius: var(--radius);
   background: #fbf4e8; color: var(--gist-groen); flex-shrink: 0;
 }
