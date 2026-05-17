@@ -1018,6 +1018,22 @@ async function updateSupportTicket(ticketId) {
   state.saveMessage = "Supportticket bijgewerkt";
   await loadSupportTickets();
 }
+
+async function deleteSupportTicket(ticketId) {
+  state.supportLoading = true;
+  state.supportError = "";
+  render();
+  const { error } = await db.from("support_tickets").delete().eq("id", ticketId);
+  state.supportLoading = false;
+  if (error) {
+    state.supportError = `Ticket verwijderen mislukt: ${error.message}`;
+    render();
+    return;
+  }
+  state.saveMessage = "Supportticket verwijderd";
+  await loadSupportTickets();
+}
+
 function renderBackupPanel() {
   if (!state.backupPanelOpen) return "";
   const backups = getPanelBackups();
@@ -1108,7 +1124,10 @@ function renderSupportPanel() {
                   <strong>${esc(ticket.subject)}</strong>
                   <small>${esc(formatSupportDate(ticket.created_at))} · ${esc(ticket.category)} · ${esc(ticket.priority)}${state.isDeveloper ? ` · ${esc(ticket.user_email)}` : ""}</small>
                 </div>
-                <span class="support-status status-${esc(ticket.status)}">${esc(supportStatusLabel(ticket.status))}</span>
+                <div class="support-ticket-actions">
+                  <span class="support-status status-${esc(ticket.status)}">${esc(supportStatusLabel(ticket.status))}</span>
+                  <button class="icon-action danger" data-delete-support-ticket="${esc(ticket.id)}" type="button" title="Ticket verwijderen" aria-label="Ticket verwijderen">${icon("trash")}</button>
+                </div>
               </div>
               <p>${esc(ticket.message)}</p>
               ${ticket.developer_reply ? `<div class="support-reply"><strong>Reactie developer</strong><p>${esc(ticket.developer_reply)}</p></div>` : ""}
@@ -2085,6 +2104,21 @@ function bindEvents() {
     btn.addEventListener("click", () => updateSupportTicket(btn.dataset.saveTicket));
   });
 
+  document.querySelectorAll("[data-delete-support-ticket]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const ticket = state.supportTickets.find((item) => item.id === btn.dataset.deleteSupportTicket);
+      if (!ticket) return;
+      openConfirmDialog({
+        type: "delete-support-ticket",
+        ticketId: ticket.id,
+        icon: "trash",
+        title: "Supportticket verwijderen?",
+        message: `Je verwijdert <strong>${esc(ticket.subject)}</strong>. Dit ticket verdwijnt uit je supportoverzicht.`,
+        confirmLabel: "Verwijderen",
+      });
+    });
+  });
+
   document.querySelector("[data-backup-backdrop]")?.addEventListener("click", (e) => {
     if (e.target !== e.currentTarget) return;
     state.backupPanelOpen = false;
@@ -2209,6 +2243,9 @@ function bindEvents() {
         await saveRecipeToDB(recipe);
         state.saveMessage = "Logboekitem verwijderd";
       }
+    }
+    if (dialog.type === "delete-support-ticket") {
+      await deleteSupportTicket(dialog.ticketId);
     }
     state.confirmDialog = null;
     render();

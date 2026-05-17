@@ -76,6 +76,19 @@ create policy "Developer mag supporttickets aanpassen"
     )
   );
 
+drop policy if exists "Eigen supporttickets of developer verwijderen" on public.support_tickets;
+create policy "Eigen supporttickets of developer verwijderen"
+  on public.support_tickets
+  for delete
+  to authenticated
+  using (
+    auth.uid() = user_id
+    or exists (
+      select 1 from public.app_developers d
+      where lower(d.email) = lower(auth.jwt() ->> 'email')
+    )
+  );
+
 -- Zet jezelf als developer aan, met het e-mailadres waarmee je inlogt:
 -- insert into public.app_developers (email)
 -- values ('jouw@email.nl')

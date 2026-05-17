@@ -318,6 +318,7 @@ th { color: var(--gist-groen); font-size: 0.7rem; font-weight: 800; text-transfo
 .support-ticket-head strong { display: block; color: var(--oven-donker); font-size: 1rem; }
 .support-ticket-head small { display: block; margin-top: 3px; color: var(--gist-groen); font-size: 0.76rem; font-weight: 800; }
 .support-ticket p { margin: 0; line-height: 1.5; }
+.support-ticket-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .support-status {
   flex-shrink: 0; padding: 4px 9px; border-radius: 999px;
   background: rgba(111,127,77,0.12); color: var(--gist-groen); font-size: 0.72rem; font-weight: 900;
@@ -335,4 +336,5 @@ th { color: var(--gist-groen); font-size: 0.7rem; font-weight: 800; text-transfo
 @media (max-width: 560px) {
   .support-row { grid-template-columns: 1fr; }
   .support-ticket-head { display: grid; }
+  .support-ticket-actions { justify-content: space-between; }
 }
