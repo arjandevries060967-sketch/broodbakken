@@ -142,6 +142,11 @@ const BACKUP_REMINDER_DAYS = 7;
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
+  const openOptions = document.querySelectorAll(".more-options[open]");
+  if (openOptions.length) {
+    openOptions.forEach((menu) => { menu.open = false; });
+    return;
+  }
   if (state.photoPreview) {
     state.photoPreview = null;
     render();
@@ -166,6 +171,11 @@ document.addEventListener("keydown", (e) => {
     state.supportPanelOpen = false;
     render();
   }
+});
+
+document.addEventListener("click", (e) => {
+  if (e.target.closest(".more-options")) return;
+  document.querySelectorAll(".more-options[open]").forEach((menu) => { menu.open = false; });
 });
 
 function isPasswordRecoveryUrl() {
