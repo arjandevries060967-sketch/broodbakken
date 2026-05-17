@@ -180,23 +180,40 @@ async function exchangeRecoveryCodeIfPresent() {
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
+async function loadSignedInData() {
+  const results = await Promise.allSettled([
+    withTimeout(loadRecipesFromDB(), "Recepten laden duurt te lang", 10000),
+    withTimeout(loadProfile(), "Profiel laden duurt te lang", 10000),
+    withTimeout(loadGeneralNotes(), "Notities laden duurt te lang", 10000),
+    withTimeout(loadDeveloperStatus(), "Developerstatus laden duurt te lang", 10000),
+  ]);
+  const failed = results.find((result) => result.status === "rejected" || result.value?.timeoutError);
+  if (failed) state.saveMessage = failed.reason?.message || failed.value?.timeoutError || "Niet alle gegevens konden worden geladen";
+}
+
 async function initAuth() {
-  const recoveryError = await exchangeRecoveryCodeIfPresent();
-  if (recoveryError) {
-    state.authView = "forgot";
-    state.saveMessage = recoveryError;
-  }
-  const { data: { session } } = await db.auth.getSession();
-  if (session?.user) {
-    state.user = session.user;
-    if (isPasswordRecoveryUrl()) {
-      state.authView = "reset";
-    } else {
-      await Promise.all([loadRecipesFromDB(), loadProfile(), loadGeneralNotes(), loadDeveloperStatus()]);
+  try {
+    const recoveryError = await exchangeRecoveryCodeIfPresent();
+    if (recoveryError) {
+      state.authView = "forgot";
+      state.saveMessage = recoveryError;
     }
+    const sessionResult = await withTimeout(db.auth.getSession(), "Sessie laden duurt te lang", 10000);
+    const session = sessionResult.timeoutError ? null : sessionResult.data?.session;
+    if (session?.user) {
+      state.user = session.user;
+      if (isPasswordRecoveryUrl()) {
+        state.authView = "reset";
+      } else {
+        await loadSignedInData();
+      }
+    }
+  } catch (error) {
+    state.saveMessage = error?.message || "Opstarten mislukt. Probeer opnieuw te laden.";
+  } finally {
+    state.loading = false;
+    render();
   }
-  state.loading = false;
-  render();
 
   db.auth.onAuthStateChange(async (event, session) => {
     if (event === "PASSWORD_RECOVERY" && session?.user) {
@@ -208,7 +225,7 @@ async function initAuth() {
     } else if (event === "SIGNED_IN" && session?.user) {
       state.user = session.user;
       if (state.authView === "reset") { renderAuthScreen(); return; }
-      await Promise.all([loadRecipesFromDB(), loadProfile(), loadGeneralNotes(), loadDeveloperStatus()]);
+      await loadSignedInData();
       render();
     } else if (event === "SIGNED_OUT") {
       state.user = null;
