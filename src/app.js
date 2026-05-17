@@ -12,12 +12,12 @@ const RATING_OPTIONS = [
   { value: "favoriet", label: "Favoriet" },
 ];
 const FLOUR_LIBRARY = [
-  "Tarwebloem T45",
-  "Tarwebloem T55",
-  "Tarwebloem T65",
-  "Tarwebloem T80",
-  "Volkoren tarwemeel T110",
-  "Volkoren tarwemeel T150",
+  "Boekweitmeel",
+  "Havermeel",
+  "Maismeel",
+  "Meergranenmeel",
+  "Patentbloem T45",
+  "Patentbloem T55",
   "Roggemeel T85",
   "Roggemeel T115",
   "Roggemeel T130",
@@ -26,34 +26,34 @@ const FLOUR_LIBRARY = [
   "Speltmeel T90",
   "Speltmeel T110",
   "Speltmeel T130",
-  "Patentbloem T45",
-  "Patentbloem T55",
+  "Tarwebloem T45",
+  "Tarwebloem T55",
+  "Tarwebloem T65",
+  "Tarwebloem T80",
   "Typo 00",
-  "Maismeel",
-  "Havermeel",
-  "Boekweitmeel",
-  "Meergranenmeel",
+  "Volkoren tarwemeel T110",
+  "Volkoren tarwemeel T150",
 ];
 const ADDITION_LIBRARY = [
-  "Water",
-  "Zout",
+  "Basterdsuiker",
+  "Boter",
+  "Broodverbeteraar",
   "Gist gedroogd",
   "Gist vers",
-  "Zuurdesemstarter",
-  "Olijfolie",
-  "Boter",
-  "Melk",
-  "Honing",
-  "Basterdsuiker",
-  "Kristalsuiker",
-  "Moutpoeder / moutmeel",
-  "Zonnebloempitten",
-  "Pompoenpitten",
-  "Lijnzaad",
-  "Sesamzaad",
   "Havervlokken",
+  "Honing",
+  "Kristalsuiker",
+  "Lijnzaad",
+  "Melk",
+  "Moutpoeder / moutmeel",
+  "Olijfolie",
+  "Pompoenpitten",
+  "Sesamzaad",
   "Volkoren granen of gekookte granen",
-  "Broodverbeteraar",
+  "Water",
+  "Zonnebloempitten",
+  "Zout",
+  "Zuurdesemstarter",
 ];
 const SEED_RECIPES = [
   {
@@ -1445,7 +1445,7 @@ function renderWorkbench() {
                       ${flours.map((ing) => `
                         <tr>
                           <td><label class="material-combo"><input class="material-input" list="flour-library" data-flour-index="${ing.index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. Tarwebloem" /></label></td>
-                          <td><label class="number-cell"><input data-flour-index="${ing.index}" data-kind="percentage" inputmode="decimal" min="0" max="100" step="0.1" type="number" value="${ing.percentage > 0 ? fmt(ing.percentage, 1) : ""}" placeholder="%" /><span>%</span></label></td>
+                          <td><label class="number-cell"><input data-flour-index="${ing.index}" data-kind="percentage" inputmode="decimal" min="0" max="100" step="0.1" type="number" value="${ing.percentage > 0 ? fmt(ing.percentage, 1) : ""}" /><span>%</span></label></td>
                           <td><label class="number-cell amount-cell"><input data-flour-index="${ing.index}" data-kind="amount" inputmode="decimal" min="0" step="0.1" type="number" value="${ing.amount > 0 ? fmt(ing.amount, 1) : ""}" placeholder="g" /><span>g</span></label></td>
                           <td><button class="icon-action danger" data-delete-flour="${ing.index}" type="button">${icon("trash")}</button></td>
                         </tr>`).join("")}
@@ -1467,7 +1467,7 @@ function renderWorkbench() {
                       ${additions.map((ing) => `
                         <tr>
                           <td><label class="material-combo"><input class="material-input" list="addition-library" data-addition-index="${ing.index}" data-kind="name" type="text" value="${esc(ing.name)}" placeholder="bijv. Water" /></label></td>
-                          <td><label class="number-cell"><input data-addition-index="${ing.index}" data-kind="percentage" inputmode="decimal" min="0" step="0.1" type="number" value="${ing.percentage > 0 ? fmt(ing.percentage, 1) : ""}" placeholder="%" /><span>%</span></label></td>
+                          <td><label class="number-cell"><input data-addition-index="${ing.index}" data-kind="percentage" inputmode="decimal" min="0" step="0.1" type="number" value="${ing.percentage > 0 ? fmt(ing.percentage, 1) : ""}" /><span>%</span></label></td>
                           <td><label class="number-cell amount-cell"><input data-addition-index="${ing.index}" data-kind="amount" readonly tabindex="-1" type="number" value="${ing.amount > 0 ? fmt(ing.amount, 1) : ""}" placeholder="–" /><span>g</span></label></td>
                           <td><button class="icon-action danger" data-delete-addition="${ing.index}" type="button">${icon("trash")}</button></td>
                         </tr>`).join("")}
