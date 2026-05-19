@@ -1421,7 +1421,7 @@ function renderProfile() {
     <main class="app-shell">
       ${renderTopbar(true, "Terug")}
       <div class="tile-screen">
-        <div class="tile-screen-header">
+        <div class="tile-screen-header page-masthead">
           <h2>Mijn profiel</h2>
         </div>
         <div class="profile-form">
@@ -1464,7 +1464,7 @@ function renderMyRecipes() {
     <main class="app-shell">
       ${renderTopbar()}
       <div class="tile-screen">
-        <div class="tile-screen-header">
+        <div class="tile-screen-header page-masthead">
           <h2>Mijn recepten</h2>
           <button class="tool-button primary" data-new-recipe type="button">${icon("plus")}Nieuw</button>
         </div>
@@ -1546,7 +1546,7 @@ function renderLibrary() {
     <main class="app-shell">
       ${renderTopbar()}
       <div class="tile-screen">
-        <div class="tile-screen-header">
+        <div class="tile-screen-header page-masthead">
           <h2>Bibliotheek</h2>
         </div>
         ${content()}
@@ -1566,7 +1566,7 @@ function renderNotes() {
     <main class="app-shell">
       ${renderTopbar()}
       <section class="notes-screen">
-        <div class="tile-screen-header notes-header">
+        <div class="tile-screen-header notes-header page-masthead">
           <div>
             <h2>Notities</h2>
             <p>Algemene baktips, ovenstanden, deegobservaties en dingen die je later wilt onthouden.</p>

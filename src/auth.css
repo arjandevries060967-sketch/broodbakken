@@ -59,14 +59,20 @@
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px; flex-wrap: wrap; margin: -6px -6px 16px;
   padding: 12px 14px;
+}
+.page-masthead {
   border: 1px solid rgba(122,63,36,0.14);
   border-radius: 10px;
   background:
-    linear-gradient(180deg, rgba(255,250,241,0.96), rgba(251,244,232,0.88)),
+    linear-gradient(135deg, rgba(255,250,241,0.94) 0%, rgba(246,239,226,0.96) 56%, rgba(228,208,178,0.68) 100%),
     var(--zout-wit);
-  box-shadow: 0 12px 28px rgba(75,40,27,0.08), inset 0 1px 0 rgba(255,250,241,0.92);
+  box-shadow: 0 14px 34px rgba(75,40,27,0.12), inset 0 1px 0 rgba(255,250,241,0.95);
 }
 .tile-screen-header h2 { font-size: clamp(1.1rem, 3vw, 1.6rem); }
+.page-masthead h2 { font-size: clamp(1.35rem, 3.4vw, 2rem); }
+.page-masthead .tool-button.primary {
+  box-shadow: 0 12px 26px rgba(75,40,27,0.18);
+}
 
 /* ── Filter knoppen ──────────────────────────────────────────────────────── */
 .recipe-filters {
@@ -318,9 +324,9 @@
   gap: 10px; flex-wrap: wrap; padding: 14px 18px;
   border-bottom: 1px solid rgba(122,63,36,0.14);
   background:
-    linear-gradient(180deg, rgba(255,250,241,0.96), rgba(251,244,232,0.88)),
+    linear-gradient(135deg, rgba(255,250,241,0.94) 0%, rgba(246,239,226,0.96) 56%, rgba(228,208,178,0.68) 100%),
     var(--zout-wit);
-  box-shadow: 0 10px 24px rgba(75,40,27,0.08), inset 0 1px 0 rgba(255,250,241,0.92);
+  box-shadow: 0 14px 34px rgba(75,40,27,0.12), inset 0 1px 0 rgba(255,250,241,0.95);
 }
 .workbench-title { margin: 0; font-size: clamp(1rem, 3vw, 1.5rem); color: var(--oven-donker); font-family: Fraunces, Georgia, serif; }
 .workbench-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
