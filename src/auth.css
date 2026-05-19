@@ -57,7 +57,14 @@
 
 .tile-screen-header {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
+  gap: 12px; flex-wrap: wrap; margin: -6px -6px 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(122,63,36,0.14);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255,250,241,0.96), rgba(251,244,232,0.88)),
+    var(--zout-wit);
+  box-shadow: 0 12px 28px rgba(75,40,27,0.08), inset 0 1px 0 rgba(255,250,241,0.92);
 }
 .tile-screen-header h2 { font-size: clamp(1.1rem, 3vw, 1.6rem); }
 
@@ -309,7 +316,11 @@
 .workbench-topbar {
   display: flex; align-items: center; justify-content: space-between;
   gap: 10px; flex-wrap: wrap; padding: 14px 18px;
-  border-bottom: 1px solid var(--lijn); background: var(--meel);
+  border-bottom: 1px solid rgba(122,63,36,0.14);
+  background:
+    linear-gradient(180deg, rgba(255,250,241,0.96), rgba(251,244,232,0.88)),
+    var(--zout-wit);
+  box-shadow: 0 10px 24px rgba(75,40,27,0.08), inset 0 1px 0 rgba(255,250,241,0.92);
 }
 .workbench-title { margin: 0; font-size: clamp(1rem, 3vw, 1.5rem); color: var(--oven-donker); font-family: Fraunces, Georgia, serif; }
 .workbench-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -565,7 +576,8 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
     grid-template-columns: minmax(0, 1fr) minmax(96px, auto);
     align-items: center;
     gap: 10px;
-    margin-bottom: 12px;
+    margin: 0 0 12px;
+    padding: 10px 11px;
   }
   .tile-screen-header h2 { font-size: 1.18rem !important; }
   .tile-screen-header .tool-button { min-height: 38px; padding-inline: 10px; justify-self: end; }
@@ -776,7 +788,7 @@ input[readonly] { background: var(--meel) !important; color: var(--steen-grijs);
   .nav-btn { min-height: 34px; padding: 6px 7px !important; font-size: 0.74rem !important; }
 
   .tile-screen { padding: 10px !important; }
-  .tile-screen-header { margin-bottom: 10px; }
+  .tile-screen-header { margin: 0 0 10px; }
   .tile-screen-header h2 { font-size: 1.08rem !important; }
   .tile-screen-header [data-new-recipe] { width: 44px; min-width: 44px; min-height: 42px; }
 
